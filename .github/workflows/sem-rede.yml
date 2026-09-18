@@ -1,0 +1,52 @@
+# Garante que index.html continua 100% offline — não é conveniência, é a
+# fronteira de privacidade: este formulário digita CPF/RG/endereço de
+# autores, então "roda só no navegador" precisa ser verificável, não só
+# prometido no texto da página.
+#
+# Dois checks que se dividem pelo arquivo:
+#   1. Fora do bloco vendorizado, nenhuma referência de rede.
+#   2. Dentro do bloco vendorizado, o conteúdo não muda sem que alguém
+#      atualize o hash de referência no mesmo commit — ninguém revisa 500KB
+#      de código minificado linha a linha num diff, então uma alteração
+#      silenciosa ali passaria batida sem essa trava.
+
+name: Verificar isolamento de rede
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sem-rede:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sem referência de rede fora do bloco vendorizado
+        run: |
+          set -euo pipefail
+          sed '/BEGIN VENDOR/,/END VENDOR/d' index.html > /tmp/sem-vendor.html
+          if grep -EnI 'https?://|fetch\(|XMLHttpRequest|import\(|sendBeacon|new Worker|WebSocket|EventSource' /tmp/sem-vendor.html; then
+            echo "" >&2
+            echo "Referência de rede encontrada fora do bloco vendorizado — este arquivo precisa continuar 100% offline." >&2
+            exit 1
+          fi
+          echo "Nenhuma referência de rede fora do bloco vendorizado."
+
+      - name: Hash do bloco vendorizado confere
+        run: |
+          set -euo pipefail
+          sed -n '/BEGIN VENDOR/,/END VENDOR/p' index.html \
+            | sha256sum | awk '{print $1"  index.html.vendor-block"}' > /tmp/hash-atual.sha256
+          if ! diff -u .github/vendor-pdf-lib.sha256 /tmp/hash-atual.sha256; then
+            echo "" >&2
+            echo "O bloco vendorizado mudou. Se foi intencional (ex.: atualizar o pdf-lib)," >&2
+            echo "recalcule e substitua .github/vendor-pdf-lib.sha256 no MESMO commit." >&2
+            exit 1
+          fi
+          echo "Hash do bloco vendorizado confere."
