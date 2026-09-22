@@ -2,593 +2,70 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gerador de PDF do SIPAC — NIT/CEFET-MG</title>
-<style>
-  :root{
-    --paper: #f4f3ee;
-    --surface: #ffffff;
-    --ink: #23261f;
-    --ink-soft: #565a4e;
-    --ink-faint: #8a8d80;
-    --line: #d8d6c8;
-    --accent: #2f5d50;
-    --accent-ink: #ffffff;
-    --accent-soft: #e3ece7;
-    --danger: #9a3b1f;
-    --danger-soft: #f6e6e0;
-    --radius: 8px;
-    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --paper: #181a15;
-      --surface: #21241c;
-      --ink: #eae8dc;
-      --ink-soft: #b6b6a6;
-      --ink-faint: #7c7e70;
-      --line: #383a2e;
-      --accent: #7fbfa4;
-      --accent-ink: #10201a;
-      --accent-soft: #24322a;
-      --danger: #e08a6a;
-      --danger-soft: #382520;
-    }
-  }
-  *{ box-sizing: border-box; }
-  body{
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--sans);
-    line-height: 1.5;
-  }
-  header.top{
-    border-bottom: 1px solid var(--line);
-    padding: 28px max(20px, calc((100% - 1100px) / 2)) 24px;
-  }
-  header.top .eyebrow{
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent);
-    display: block;
-    margin-bottom: 8px;
-  }
-  header.top h1{
-    margin: 0 0 10px;
-    font-size: clamp(1.4rem, 2.6vw, 1.9rem);
-    text-wrap: balance;
-  }
-  header.top p{
-    margin: 0;
-    max-width: 68ch;
-    color: var(--ink-soft);
-  }
-  .privacy-note{
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-    padding: 6px 12px;
-    background: var(--accent-soft);
-    border-radius: 999px;
-    font-size: 0.85rem;
-    color: var(--ink);
-  }
-
-  .import-wrap{
-    padding: 20px max(20px, calc((100% - 1100px) / 2)) 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .import-card{
-    max-width: 1100px;
-    margin: 0 auto;
-    width: 100%;
-    border: 1px dashed var(--line);
-    border-radius: 10px;
-    padding: 16px 18px;
-    background: var(--surface);
-  }
-  .import-card summary{
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.92rem;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .import-card summary::-webkit-details-marker{ display: none; }
-  .import-card summary::before{
-    content: "▸";
-    color: var(--accent);
-    transition: transform 0.15s;
-  }
-  .import-card[open] summary::before{ transform: rotate(90deg); }
-  .import-card p{
-    color: var(--ink-soft);
-    font-size: 0.87rem;
-    margin: 10px 0 12px;
-    max-width: 70ch;
-  }
-  .import-card code{
-    background: var(--accent-soft);
-    padding: 0.1em 0.4em;
-    border-radius: 4px;
-    font-size: 0.92em;
-  }
-  .import-row{
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .import-row textarea{
-    flex: 1;
-    min-height: 80px;
-    font-family: var(--mono);
-    font-size: 0.78rem;
-  }
-  .import-row .btn{ flex-shrink: 0; }
-  .import-feedback{
-    font-size: 0.83rem;
-    margin-top: 8px;
-  }
-  .import-feedback.ok{ color: var(--accent); }
-  .import-feedback.error{ color: var(--danger); }
-
-  main{
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 0;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  @media (max-width: 860px){
-    main{ grid-template-columns: 1fr; }
-  }
-
-  .form-pane{
-    padding: 28px max(20px, 32px) 80px;
-    border-right: 1px solid var(--line);
-  }
-  @media (max-width: 860px){
-    .form-pane{ border-right: none; border-bottom: 1px solid var(--line); }
-  }
-
-  .output-pane{
-    padding: 28px 20px 80px;
-    position: sticky;
-    top: 0;
-    align-self: start;
-    max-height: 100vh;
-    overflow-y: auto;
-  }
-  @media (max-width: 860px){
-    .output-pane{ position: static; max-height: none; }
-  }
-
-  fieldset{
-    border: none;
-    padding: 0;
-    margin: 0 0 36px;
-  }
-  fieldset legend{
-    font-weight: 600;
-    font-size: 1.02rem;
-    margin-bottom: 4px;
-    padding: 0;
-  }
-  .section-hint{
-    color: var(--ink-faint);
-    font-size: 0.85rem;
-    margin: 0 0 16px;
-  }
-
-  .field{
-    margin-bottom: 16px;
-    position: relative;
-  }
-  .field label{
-    display: block;
-    font-size: 0.88rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-  }
-  .field .field-hint{
-    font-size: 0.8rem;
-    color: var(--ink-faint);
-    margin: 3px 0 0;
-  }
-  .field .req{
-    color: var(--danger);
-    font-weight: 400;
-  }
-  .field .opt-note{
-    color: var(--ink-faint);
-    font-weight: 400;
-    font-size: 0.82rem;
-  }
-  .field .tag-count{
-    font-weight: 400;
-    color: var(--ink-faint);
-    font-size: 0.82rem;
-  }
-
-  input[type="text"], input[type="number"], select, textarea{
-    width: 100%;
-    padding: 9px 11px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--ink);
-    font-family: inherit;
-    font-size: 0.95rem;
-  }
-  textarea{ resize: vertical; min-height: 64px; }
-  input:focus, select:focus, textarea:focus{
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-
-  .row2{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  @media (max-width: 480px){ .row2{ grid-template-columns: 1fr; } }
-
-  .char-count{
-    font-size: 0.78rem;
-    color: var(--ink-faint);
-    text-align: right;
-    margin-top: 3px;
-  }
-  .char-count.short{ color: var(--danger); }
-
-  .chip-picker{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .chip{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--surface);
-    font-size: 0.85rem;
-    cursor: pointer;
-    user-select: none;
-  }
-  .chip input{ margin: 0; accent-color: var(--accent); }
-  .chip.checked{
-    background: var(--accent-soft);
-    border-color: var(--accent);
-  }
-
-  .tag-add{
-    display: flex;
-    gap: 8px;
-  }
-  .tag-add input{ flex: 1; }
-  .tag-add button{
-    flex-shrink: 0;
-  }
-  .tag-list{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .tag{
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 5px 6px 5px 12px;
-    background: var(--accent-soft);
-    border-radius: 999px;
-    font-size: 0.85rem;
-  }
-  .tag button{
-    background: none;
-    border: none;
-    color: var(--ink-soft);
-    cursor: pointer;
-    font-size: 0.95rem;
-    line-height: 1;
-    padding: 2px 6px;
-    border-radius: 999px;
-  }
-  .tag button:hover{ background: rgba(0,0,0,0.08); color: var(--danger); }
-
-  /* combobox de busca (área de aplicação / tipo de programa) */
-  .combo-box{ position: relative; }
-  .combo-listbox{
-    position: absolute;
-    z-index: 5;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    max-height: 320px;
-    overflow-y: auto;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
-  }
-  .combo-listbox[hidden]{ display: none; }
-  .combo-group-label{
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--ink-faint);
-    padding: 8px 12px 4px;
-    background: var(--paper);
-    position: sticky;
-    top: 0;
-  }
-  .combo-option{
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 7px 12px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-family: inherit;
-    color: var(--ink);
-  }
-  .combo-option:hover, .combo-option.active{ background: var(--accent-soft); }
-  .combo-option .code{
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--accent);
-    margin-right: 6px;
-  }
-  .combo-option .desc{
-    display: block;
-    font-size: 0.76rem;
-    color: var(--ink-faint);
-    margin-top: 1px;
-  }
-  .combo-empty, .combo-hint{
-    padding: 10px 12px;
-    font-size: 0.82rem;
-    color: var(--ink-faint);
-  }
-  .combo-more{
-    padding: 6px 12px;
-    font-size: 0.76rem;
-    color: var(--ink-faint);
-    font-style: italic;
-  }
-
-  .checkbox-field{
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .checkbox-field input{ margin-top: 3px; accent-color: var(--accent); }
-  .checkbox-field label{
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin: 0;
-  }
-  .checkbox-field .field-hint{ margin-top: 2px; }
-
-  .author-card{
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 14px 16px 16px;
-    margin-bottom: 12px;
-    background: var(--surface);
-  }
-  .author-card-head{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  .author-card-head span{
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .remove-btn{
-    background: none;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    color: var(--danger);
-    font-size: 0.78rem;
-    padding: 3px 9px;
-    cursor: pointer;
-  }
-  .remove-btn:hover{ background: var(--danger-soft); }
-
-  button{
-    font-family: inherit;
-    font-size: 0.88rem;
-    cursor: pointer;
-  }
-  .btn{
-    padding: 8px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--ink);
-  }
-  .btn:hover{ border-color: var(--accent); }
-  .btn-add{
-    width: 100%;
-    padding: 10px;
-    border: 1px dashed var(--line);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--ink-soft);
-    font-weight: 600;
-  }
-  .btn-add:hover{ border-color: var(--accent); color: var(--accent); }
-  .btn-primary{
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: var(--accent);
-    font-weight: 600;
-  }
-  .btn-primary:hover{ opacity: 0.9; }
-  .btn-primary:disabled{ opacity: 0.5; cursor: not-allowed; }
-
-  .output-actions{
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .validation-box{
-    margin-top: 4px;
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    font-size: 0.85rem;
-  }
-  .validation-box.ok{
-    background: var(--accent-soft);
-    color: var(--ink);
-  }
-  .validation-box.pending{
-    background: var(--danger-soft);
-    color: var(--ink);
-  }
-  .validation-box ul{ margin: 6px 0 0; padding-left: 1.1em; }
-  .validation-box li{ margin-bottom: 3px; }
-
-  .pdf-status{
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: var(--radius);
-    font-size: 0.85rem;
-    display: none;
-  }
-  .pdf-status.show{ display: block; }
-  .pdf-status.info{ background: var(--accent-soft); color: var(--ink); }
-  .pdf-status.ok{ background: var(--accent-soft); color: var(--ink); font-weight: 600; }
-  .pdf-status.error{ background: var(--danger-soft); color: var(--ink); }
-
-  .privacy-warning{
-    margin-top: 18px;
-    padding: 12px 14px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    font-size: 0.8rem;
-    color: var(--ink-soft);
-    background: var(--surface);
-  }
-  .privacy-warning strong{ color: var(--ink); }
-
-  .draft-row{
-    display: flex;
-    gap: 10px;
-  }
-  .draft-row .btn{ flex: 1; }
-  .file-label{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-  }
-  .file-label input[type="file"]{ display: none; }
-</style>
+<link rel="stylesheet" href="estilos.css">
 </head>
 <body>
 
 <header class="top">
   <span class="eyebrow">NIT/CEFET-MG — submissão de software</span>
   <h1>Gerador de PDF do SIPAC</h1>
-  <p>Preencha este formulário para gerar o PDF anexado ao processo do SIPAC — título, classificação, dados completos dos autores (inclusive os sensíveis) e a release/hash do repositório. Substitui o script Python local: roda inteiramente no seu navegador, sem instalar nada.</p>
-  <span class="privacy-note">🔒 Roda só no seu navegador — nada é enviado a lugar nenhum, nem os dados sensíveis dos autores</span>
+  <p>Preencha este formulário em etapas para gerar o PDF anexado ao processo do SIPAC — título, classificação, dados completos dos autores e o programa a proteger.</p>
 </header>
 
-<div class="import-wrap">
-  <details class="import-card" id="import-card-metadata">
-    <summary>Já tem um repositório criado? Pré-preencha com o metadata.json</summary>
-    <p>
-      Abra o <code>metadata.json</code> do seu repositório no GitHub, copie o conteúdo inteiro e cole abaixo.
-      Título, descrição, TRL, origem e os nomes/vínculos dos autores são pré-preenchidos — você completa o
-      resto (classificação, dados sensíveis dos autores, release).
-    </p>
-    <div class="import-row">
-      <textarea id="import-textarea" placeholder="Cole aqui o conteúdo de metadata.json"></textarea>
-      <button type="button" class="btn btn-primary" id="btn-import">Carregar dados</button>
-    </div>
-    <p class="import-feedback" id="import-feedback"></p>
-  </details>
-
-  <details class="import-card" id="import-card-rascunho">
-    <summary>Já começou e salvou um rascunho? Continue de onde parou</summary>
-    <p>
-      Carregue o arquivo que você baixou em "Baixar rascunho" da última vez. Ele fica só na sua máquina —
-      nunca é enviado a lugar nenhum, nem por este formulário nem por qualquer outro lugar.
-    </p>
-    <div class="import-row">
-      <label class="btn file-label">
-        Escolher arquivo de rascunho
-        <input type="file" id="input-carregar-rascunho" accept="application/json">
-      </label>
-    </div>
-    <p class="import-feedback" id="rascunho-feedback"></p>
-  </details>
+<div class="draft-toolbar">
+  <button class="btn" id="btn-baixar-rascunho" type="button">Salvar rascunho</button>
+  <label class="btn file-label">
+    Carregar rascunho
+    <input type="file" id="input-carregar-rascunho" accept="application/json">
+  </label>
+  <span class="draft-feedback" id="draft-feedback"></span>
 </div>
 
-<main>
-  <div class="form-pane">
-    <form id="gerador" autocomplete="off">
+<div class="wizard-shell">
+ <div class="wizard-card">
+  <nav class="wizard-progress" id="wizard-progress" aria-label="Etapas do formulário"></nav>
 
+  <div class="wizard-body">
+
+    <section class="wizard-step" data-step="identificacao">
       <fieldset>
         <legend>Identificação</legend>
-        <p class="section-hint">Dados gerais do software. Título e TRL podem já estar preenchidos a partir do metadata.json — revise antes de gerar o PDF.</p>
+        <p class="section-hint">Dados gerais do software.</p>
+
+        <div class="info-box">
+          <span class="info-box-icon" aria-hidden="true">!</span>
+          <div class="info-box-body">
+            <strong class="info-box-title">Antes de continuar: o software já precisa estar no repositório, seguindo o processo vigente da CIE.</strong>
+            Este PDF é a documentação (item 1.1) que acompanha o processo do tipo "Registro de Programa de
+            Computador" aberto no SIPAC.
+            <a href="#" id="link-integra" class="source-citation-link" target="_blank" rel="noopener noreferrer">Ver instruções da CIE</a>
+          </div>
+        </div>
 
         <div class="field">
           <label for="titulo">Título do software <span class="req">*</span></label>
-          <input type="text" id="titulo" minlength="3" required>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label for="sigla">Sigla</label>
-            <input type="text" id="sigla">
-          </div>
-          <div class="field">
-            <label for="trl">TRL estimado <span class="req">*</span></label>
-            <select id="trl" required>
-              <option value="">Selecione</option>
-              <option value="1">1 — princípios básicos observados</option>
-              <option value="2">2 — conceito formulado</option>
-              <option value="3">3 — prova de conceito</option>
-              <option value="4">4 — validado em laboratório</option>
-              <option value="5">5 — validado em ambiente relevante</option>
-              <option value="6">6 — demonstrado em ambiente relevante</option>
-              <option value="7">7 — demonstrado em ambiente operacional</option>
-              <option value="8">8 — sistema completo e qualificado</option>
-              <option value="9">9 — em uso real</option>
-            </select>
-          </div>
+          <input type="text" id="titulo" minlength="3" maxlength="250" required>
+          <p class="field-hint">Recomendamos um título que indique a funcionalidade do programa (máx. 250 caracteres).</p>
+          <p class="field-error" hidden></p>
         </div>
 
         <div class="field">
-          <label for="descricao_curta">Descrição curta <span class="req">*</span></label>
-          <textarea id="descricao_curta" minlength="20" required placeholder="2–3 linhas sobre o que o software faz e para quem"></textarea>
-          <p class="char-count" id="descricao-count">0 caracteres (mínimo 20)</p>
+          <label>TRL estimado <span class="req">*</span></label>
+          <p class="field-hint">Escala de Maturidade Tecnológica (TRL) — adaptada da Embrapa.</p>
+          <input type="hidden" id="trl">
+          <div class="trl-picker" id="trl-picker"></div>
+          <p class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="descricao_curta">Descrição do software <span class="req">*</span></label>
+          <p class="field-hint">Escreva um parágrafo explicando o que o software faz, para quem é destinado, qual a sua finalidade/objetivo, e justificando o nível de TRL escolhido acima.</p>
+          <textarea id="descricao_curta" class="textarea-paragrafo" minlength="120" required></textarea>
+          <p class="char-count" id="descricao-count">0 caracteres (mínimo 120)</p>
+          <p class="field-error" hidden></p>
         </div>
 
         <div class="row2">
@@ -602,17 +79,79 @@
               <option value="projeto_fomento">Projeto com fomento</option>
               <option value="outro">Outro</option>
             </select>
+            <p class="field-error" hidden></p>
           </div>
           <div class="field">
             <label for="origem_vinculo">Nome do projeto/disciplina/edital</label>
             <input type="text" id="origem_vinculo">
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="informe_projeto">Informe sobre projeto de Pesquisa, Extensão ou Outros <span class="opt-note">(detalhe a origem acima, se aplicável)</span></label>
+          <p class="field-hint">Se este programa surgiu de um plano de trabalho (Pesquisa, Extensão, Edital, P&amp;D...), detalhe aqui — inclua no processo do SIPAC, quando for o caso, o documento que autoriza o projeto e as aprovações prévias dos setores do CEFET-MG.</p>
+          <textarea id="informe_projeto"></textarea>
+          <p class="field-error" hidden></p>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="data_criacao">Data de criação</label>
+            <input type="date" id="data_criacao">
+            <p class="field-hint">Data em que foi finalizado — serve como marco temporal de autoria.</p>
+            <p class="field-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="data_publicacao">Data de publicação</label>
+            <input type="date" id="data_publicacao">
+            <p class="field-hint">Data em que foi publicado, disponibilizado ou comercializado (com ou sem fim lucrativo).</p>
+            <p class="field-error" hidden></p>
           </div>
         </div>
       </fieldset>
+    </section>
 
+    <section class="wizard-step" data-step="instituicoes">
+      <fieldset>
+        <legend>Instituições Parceiras</legend>
+        <p class="section-hint">Ex.: FAPEMIG, UFMG e outras. Deixe vazio se não houver parceria — a etapa de Parceria só aparece quando existe ao menos uma instituição aqui.</p>
+        <div id="instituicoes-list"></div>
+        <button type="button" class="btn-add" id="add-instituicao">+ Adicionar instituição parceira</button>
+      </fieldset>
+    </section>
+
+    <section class="wizard-step" data-step="autores">
+      <fieldset>
+        <legend>Autores <span class="req">*</span></legend>
+        <p class="section-hint">
+          Dados completos de cada autor, inclusive os sensíveis (CPF, endereço) — nada disso é enviado a lugar
+          nenhum, fica só no seu navegador. Pelo menos um autor é obrigatório — o primeiro é o autor correspondente.
+        </p>
+
+        <div class="info-box">
+          <span class="info-box-icon" aria-hidden="true">i</span>
+          <div class="info-box-body">
+            <strong class="info-box-title">Todos os autores continuam responsáveis, não só o correspondente.</strong>
+            Indicar um correspondente não isenta os demais da responsabilidade de acompanhar o processo até a
+            homologação da proteção, publicada na RPI. A titularidade patrimonial do software segue a
+            <a href="#" id="link-politica-inovacao" class="source-citation-link" target="_blank" rel="noopener noreferrer">Política de Inovação do CEFET-MG</a>
+            — o direito moral de autoria, isto é, ser reconhecido como quem criou o programa, permanece sempre com
+            cada autor listado aqui, independentemente de quem detenha os direitos patrimoniais. Cada autor também
+            deve manter a guarda de uma cópia do software desenvolvido, para eventual necessidade de comprovação ou
+            modificação futura.
+          </div>
+        </div>
+
+        <div id="autores-list"></div>
+        <button type="button" class="btn-add" id="add-autor">+ Adicionar autor</button>
+      </fieldset>
+    </section>
+
+    <section class="wizard-step" data-step="classificacao">
       <fieldset>
         <legend>Classificação</legend>
-        <p class="section-hint">Linguagens são livres. Área de aplicação e tipo de programa seguem a tabela oficial do INPI — busque por palavra-chave, não precisa saber o código.</p>
+        <p class="section-hint">Selecione as linguagens utilizadas, a área de aplicação e o tipo de programa — estes dois últimos considerando a tabela oficial do INPI. Busque por palavra-chave, não precisa saber o código.</p>
 
         <div class="field">
           <label>Linguagens <span class="req">*</span></label>
@@ -622,10 +161,12 @@
             <button type="button" class="btn" data-add-tag="linguagens">Adicionar</button>
           </div>
           <div class="tag-list" id="linguagens-tags"></div>
+          <p class="field-error" hidden></p>
         </div>
 
         <div class="field">
-          <label>Área de aplicação <span class="tag-count">— tabela INPI, 226 itens</span></label>
+          <label>Área de aplicação <span class="tag-count">— <a href="#" id="link-tabela-area" class="source-citation-link" target="_blank" rel="noopener noreferrer">consultar tabela</a></span></label>
+          <p class="field-hint">Pesquise e selecione quantas classificações forem necessárias para identificar o campo de aplicação do programa.</p>
           <div class="combo-box">
             <input type="text" id="area-search" placeholder="Digite para buscar, ex.: automação, saúde, educação…" autocomplete="off">
             <div class="combo-listbox" id="area-listbox" hidden></div>
@@ -634,13 +175,14 @@
         </div>
 
         <div class="field">
-          <label>Tipo de programa <span class="req">*</span> <span class="tag-count">— tabela INPI, 97 itens</span></label>
-          <p class="field-hint" style="margin-bottom:6px">Classificação técnica de que tipo de software é (sistema operacional, aplicativo, ferramenta de IA, jogo...). Escolha pelo menos um.</p>
+          <label>Tipo de programa <span class="req">*</span> <span class="tag-count">— <a href="#" id="link-tabela-tipo" class="source-citation-link" target="_blank" rel="noopener noreferrer">consultar tabela</a></span></label>
+          <p class="field-hint">Classificação técnica de que tipo de software é (sistema operacional, aplicativo, ferramenta de IA, jogo...). Escolha pelo menos um.</p>
           <div class="combo-box">
             <input type="text" id="tipo-search" placeholder="Digite para buscar, ex.: banco de dados, jogo, automação…" autocomplete="off">
             <div class="combo-listbox" id="tipo-listbox" hidden></div>
           </div>
           <div class="tag-list" id="tipo-tags"></div>
+          <p class="field-error" hidden></p>
         </div>
 
         <div class="field">
@@ -652,129 +194,231 @@
           <div class="tag-list" id="palavras-tags"></div>
         </div>
       </fieldset>
+    </section>
 
+    <section class="wizard-step" data-step="parceria">
       <fieldset>
-        <legend>Release do GitHub <span class="req">*</span></legend>
-        <p class="section-hint">Cole o bloco do checklist do README do seu repositório (a linha que mostra Release e SHA-256) — os dois campos abaixo são extraídos automaticamente. Confira se bateu antes de gerar o PDF.</p>
+        <legend>Parceria</legend>
+        <p class="section-hint">Em caso de mais de uma instituição participante do processo de invenção, indique objetivamente a participação de cada pesquisador/instituição, de maneira que justifique o compartilhamento de titularidade.</p>
+
         <div class="field">
-          <label for="release-paste">Colar do README</label>
-          <textarea id="release-paste" placeholder="Cole aqui a linha do checklist com Release e SHA-256"></textarea>
+          <label>Percentuais de cotitularidade <span class="req">*</span></label>
+          <p class="field-error" id="cotitularidade-erro" hidden></p>
+          <p class="field-hint">A soma dos percentuais (CEFET-MG + instituições parceiras) precisa totalizar 100%.</p>
+          <div class="cotitularidade-row">
+            <div class="field"><label>CEFET-MG</label></div>
+            <div class="field">
+              <label for="cotitularidade-cefetmg">%</label>
+              <input type="number" id="cotitularidade-cefetmg" min="0" max="100" step="1">
+            </div>
+          </div>
+          <div id="cotitularidade-parceiras-list"></div>
         </div>
+
+        <div class="field">
+          <label for="resumo_fases">Justificativa de titularidade <span class="req">*</span></label>
+          <p class="field-hint">Faça um resumo das fases de pesquisa realizadas, apontando a participação de cada um dos pesquisadores/instituições envolvidos de maneira que justifique o compartilhamento de titularidade.</p>
+          <textarea id="resumo_fases" class="textarea-longa" minlength="120"></textarea>
+          <p class="field-error" hidden></p>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="wizard-step" data-step="artefato">
+      <fieldset>
+        <legend>Programa a Proteger <span class="req">*</span></legend>
+        <p class="section-hint">Identifique o repositório, a release e o hash SHA-256 do código submetido a registro.</p>
+
         <div class="row2">
+          <div class="field">
+            <label for="release-repo-sufixo">Repositório no GitHub <span class="req">*</span></label>
+            <div class="repo-field-row">
+              <span class="repo-prefix-badge" id="repo-prefix-badge"></span>
+              <input type="text" id="release-repo-sufixo" placeholder="nome-do-repositorio">
+            </div>
+            <p class="field-error" hidden></p>
+          </div>
           <div class="field">
             <label for="release-tag">Release <span class="req">*</span></label>
             <input type="text" id="release-tag" placeholder="v1.0.0">
+            <p class="field-error" hidden></p>
           </div>
-          <div class="field">
+        </div>
+
+        <div class="field hash-field">
+          <div class="field-label-row">
             <label for="release-sha256">SHA-256 <span class="req">*</span></label>
-            <input type="text" id="release-sha256" placeholder="64 caracteres hexadecimais">
+            <button type="button" class="info-btn" data-info-toggle="info-hash" aria-label="Por que esse hash e de quem é a responsabilidade por ele?">?</button>
           </div>
+          <div class="info-popover-wrap">
+            <div class="info-popover" id="info-hash" hidden>
+              Este SHA-256 é o hash do release do GitHub — garante que o código deste repositório não mudou desde
+              a submissão, e é o que a extensão do NIT confere. <strong>Não é</strong> o mesmo resumo hash que o
+              formulário eletrônico e-RPC do INPI pede no depósito — lá o manual do INPI recomenda especificamente o
+              SHA-512, calculado à parte pelo autor correspondente. A guarda do arquivo compactado que gerou aquele
+              hash é responsabilidade exclusiva do autor correspondente, pelo prazo de vigência da proteção legal
+              (50 anos, art. 2º, §2º da Lei nº 9.609/98) — guarde-o de forma segura e separada, com o registro de
+              como o hash foi calculado, para fins de reprodutibilidade.
+            </div>
+          </div>
+          <input type="text" id="release-sha256" placeholder="Cole aqui o SHA-256 gerado no repositório e apresentado no README">
+          <p class="field-hint">Copie do checklist publicado no README do repositório.</p>
+          <p class="field-error" hidden></p>
         </div>
       </fieldset>
+    </section>
 
+    <section class="wizard-step" data-step="declaracoes">
       <fieldset>
-        <legend>Autores <span class="req">*</span></legend>
-        <p class="section-hint">
-          Dados completos de cada autor, inclusive os sensíveis (CPF, RG, endereço) — é exatamente por isso que
-          este formulário roda só no seu navegador. Pelo menos um autor é obrigatório — comece pelo seu.
-        </p>
-        <div id="autores-list"></div>
-        <button type="button" class="btn-add" id="add-autor">+ Adicionar autor</button>
-      </fieldset>
-
-      <fieldset>
-        <legend>Titularidade e colaboração</legend>
-        <p class="section-hint">Esses campos travam a triagem do NIT quando aplicável — não pulam etapa, só deixam a situação visível cedo.</p>
-
-        <div class="field checkbox-field">
-          <input type="checkbox" id="possui_colaborador_externo">
-          <div>
-            <label for="possui_colaborador_externo">Há colaborador sem vínculo com o CEFET-MG</label>
-            <p class="field-hint">Empresa parceira, outra instituição, ou pessoa sem vínculo algum. Pode gerar cotitularidade — o NIT revisa antes do depósito.</p>
-          </div>
-        </div>
+        <legend>Derivação e Declarações</legend>
 
         <div class="field">
-          <label for="corresponsavel_efetivo">Corresponsável efetivo <span class="opt-note">(opcional)</span></label>
-          <input type="text" id="corresponsavel_efetivo">
-          <p class="field-hint">Preencha se você tem vínculo temporário e há um servidor efetivo acompanhando. Deixe vazio se não houver.</p>
-        </div>
-
-        <div class="field checkbox-field">
-          <input type="checkbox" id="contato_disponivel">
-          <div>
-            <label for="contato_disponivel">Contato durável dos autores já foi coletado</label>
-            <p class="field-hint">O contato em si (e-mail pessoal, telefone) já está nos campos de cada autor abaixo — isto é só um sinalizador para a triagem.</p>
+          <div class="field-label-row">
+            <label>Derivação Autorizada</label>
+            <button type="button" class="info-btn" data-info-toggle="info-derivacao" aria-label="O que é derivação autorizada?">?</button>
+          </div>
+          <div class="info-popover-wrap">
+            <div class="info-popover" id="info-derivacao" hidden>
+              A Derivação Autorizada deve ser informada caso o Pedido de Registro de Programa de Computador seja derivado de outro, nos termos do Art. 5º da Lei nº 9.609/1998. Deverão ser fornecidas informações do programa original — título, linguagem e número do registro (caso esteja depositado no INPI). A guarda da autorização é de responsabilidade do titular dos direitos patrimoniais derivados.
+            </div>
+          </div>
+          <div class="radio-row">
+            <label class="radio-pill selected"><input type="radio" name="derivacao_autorizada" id="derivacao-nao" value="nao" checked> Não</label>
+            <label class="radio-pill"><input type="radio" name="derivacao_autorizada" id="derivacao-sim" value="sim"> Sim</label>
           </div>
         </div>
 
-        <div class="field checkbox-field">
-          <input type="checkbox" id="interesse_existe">
-          <div>
-            <label for="interesse_existe">Já existe interesse externo identificado</label>
-            <p class="field-hint">Empresa, outra instituição ou usuário externo já demonstrou interesse.</p>
+        <div id="derivacao-detalhes-wrap" hidden>
+          <div class="field">
+            <label for="derivacao_titulo_original">Título do programa original</label>
+            <input type="text" id="derivacao_titulo_original">
           </div>
-        </div>
-        <div class="field" id="interesse-descricao-wrap" hidden>
-          <label for="interesse_descricao">Descreva o interesse identificado</label>
-          <textarea id="interesse_descricao"></textarea>
-        </div>
-
-        <div class="field checkbox-field">
-          <input type="checkbox" id="uso_institucional">
-          <div>
-            <label for="uso_institucional">O próprio CEFET-MG usa este software</label>
-          </div>
-        </div>
-
-        <div class="field checkbox-field">
-          <input type="checkbox" id="possui_dependencias_terceiros">
-          <div>
-            <label for="possui_dependencias_terceiros">Depende fortemente de bibliotecas/software de terceiros</label>
-            <p class="field-hint">Sinaliza a necessidade de checar originalidade e licenciamento antes do registro.</p>
+          <div class="row2">
+            <div class="field">
+              <label for="derivacao_linguagem_original">Linguagem do programa original</label>
+              <input type="text" id="derivacao_linguagem_original">
+            </div>
+            <div class="field">
+              <label for="derivacao_numero_registro">Nº de registro no INPI (se houver)</label>
+              <input type="text" id="derivacao_numero_registro">
+            </div>
           </div>
         </div>
 
-        <div class="field">
-          <label for="licenca_pretendida">Licença pretendida</label>
-          <select id="licenca_pretendida">
-            <option value="">Ainda não definida</option>
-            <option value="MIT">MIT</option>
-            <option value="Apache-2.0">Apache 2.0</option>
-            <option value="GPL-3.0">GPL 3.0</option>
-            <option value="BSD-3-Clause">BSD 3-Clause</option>
-            <option value="proprietaria">Proprietária / uso restrito</option>
-            <option value="outra">Outra</option>
-          </select>
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="comercializacao_compromisso" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="comercializacao_compromisso">Comercialização da Tecnologia — comprometo-me a informar a CIE e os demais autores</label>
+            <p class="field-hint">Sobre a existência de negociação que poderá resultar no licenciamento da TECNOLOGIA, quando será necessário firmar um instrumento jurídico com as condições dessa comercialização. É liberado o uso não comercial e interno pelos autores, para fins meramente didáticos e de pesquisa, sem remuneração.</p>
+          </div>
+        </div>
+
+        <p class="section-hint section-hint-spaced">Declarações de responsabilidade e veracidade das informações — necessárias para gerar o PDF.</p>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_acompanhamento" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_acompanhamento">Declaro que assumo inteira responsabilidade pelo acompanhamento das informações do processo de pedido de registro de programa de computador.</label>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_busca_anterioridade" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_busca_anterioridade">Declaro que assumo inteira responsabilidade pela realização da Busca de Anterioridade nos casos em que esta se fizer necessária.</label>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_custos_inpi" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_custos_inpi">Declaro ciência dos custos de abertura do processo junto ao INPI e de cada ato do processo do pedido de programa de computador.</label>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_veracidade" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_veracidade">Declaro que as informações relativas aos dados contidos neste formulário são verdadeiras e autênticas (fiéis à verdade e condizentes com a realidade dos fatos à época).</label>
+            <p class="field-error" hidden></p>
+          </div>
         </div>
       </fieldset>
+    </section>
 
-    </form>
+    <section class="wizard-step" data-step="revisao">
+      <fieldset>
+        <legend>Revisão e Geração</legend>
+        <p class="section-hint">Confira as pendências abaixo — cada item leva direto ao campo. Quando não houver mais nenhuma, o botão de gerar o PDF libera.</p>
+
+        <div class="validation-box" id="revisao-pendencias"></div>
+
+        <div class="output-actions">
+          <button class="btn btn-primary" id="btn-gerar-pdf" type="button">Gerar PDF do SIPAC</button>
+        </div>
+        <p class="pdf-status" id="pdf-status"></p>
+
+        <div class="info-box">
+          <span class="info-box-icon" aria-hidden="true">i</span>
+          <div class="info-box-body">
+            <strong class="info-box-title">Depois de baixar o PDF, o envio é feito pelo SIPAC:</strong>
+            <ol>
+              <li>Inicie um novo processo no SIPAC do tipo <strong>REGISTRO DE PROGRAMA DE COMPUTADOR</strong>.</li>
+              <li>Cadastre este PDF como documento do tipo <strong>FORMULÁRIO</strong>, com nível de acesso <strong>RESTRITO</strong>.</li>
+              <li>Envie o processo para a <strong>COORDENAÇÃO DE INOVAÇÃO E EMPREENDEDORISMO (11.53.03)</strong>.</li>
+            </ol>
+            A assinatura é eletrônica, feita pelo próprio SIPAC — indique local e data ao assinar.
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
   </div>
 
-  <div class="output-pane">
-    <div class="validation-box" id="validation-box"></div>
+  <div class="wizard-footer">
+    <button class="btn" id="wizard-voltar" type="button">Cancelar</button>
+    <button class="btn btn-primary" id="wizard-proximo" type="button">Próximo passo</button>
+  </div>
+ </div>
+</div>
 
-    <div class="output-actions">
-      <button class="btn btn-primary" id="btn-gerar-pdf" type="button">Gerar PDF do SIPAC</button>
-      <div class="draft-row">
-        <button class="btn" id="btn-baixar-rascunho" type="button">Baixar rascunho</button>
+<template id="tpl-instituicao">
+  <div class="card">
+    <div class="card-head">
+      <span class="instituicao-titulo"></span>
+      <button type="button" class="remove-btn" data-action="remover">Remover</button>
+    </div>
+    <div class="field">
+      <label>Razão social <span class="req">*</span></label>
+      <input type="text" data-campo="razao_social" minlength="3">
+      <p class="field-error" hidden></p>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>CNPJ <span class="req">*</span></label>
+        <input type="text" data-campo="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off">
+        <p class="field-error" hidden></p>
+      </div>
+      <div class="field">
+        <label>Endereço <span class="req">*</span></label>
+        <input type="text" data-campo="endereco" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
     </div>
-    <p class="pdf-status" id="pdf-status"></p>
-
-    <div class="privacy-warning">
-      <strong>Depois de gerar:</strong> anexe o PDF ao processo no SIPAC e apague o arquivo do seu computador.
-      Se usar o rascunho, o mesmo vale — ele contém dados sensíveis dos autores (CPF, RG, endereço). Evite
-      preencher isto num computador público ou compartilhado; se precisar, apague o rascunho e o histórico de
-      downloads antes de sair.
-    </div>
   </div>
-</main>
+</template>
 
 <template id="tpl-autor">
-  <div class="author-card">
-    <div class="author-card-head">
+  <div class="card">
+    <div class="card-head">
       <span class="autor-titulo"></span>
       <button type="button" class="remove-btn" data-action="remover">Remover</button>
     </div>
@@ -783,73 +427,101 @@
       <div class="field">
         <label>Nome completo <span class="req">*</span></label>
         <input type="text" data-campo="nome" minlength="3">
+        <p class="field-error" hidden></p>
       </div>
       <div class="field">
-        <label>Vínculo <span class="req">*</span></label>
-        <select data-campo="vinculo">
-          <option value="">Selecione</option>
-          <option value="servidor_efetivo">Servidor efetivo</option>
-          <option value="substituto">Professor substituto</option>
-          <option value="discente">Discente</option>
-          <option value="tecnico">Técnico</option>
-          <option value="bolsista">Bolsista</option>
-          <option value="externo">Externo ao CEFET-MG</option>
-        </select>
+        <label>Nacionalidade</label>
+        <input type="text" data-campo="nacionalidade" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
-    </div>
-
-    <div class="field campo-instituicao" hidden>
-      <label>Instituição de origem</label>
-      <input type="text" data-campo="instituicao">
     </div>
 
     <div class="row2">
       <div class="field">
         <label>CPF <span class="req">*</span></label>
         <input type="text" data-campo="cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
       <div class="field">
-        <label>RG <span class="req">*</span></label>
-        <input type="text" data-campo="rg" autocomplete="off">
+        <label>Instituição <span class="req">*</span></label>
+        <select data-campo="instituicao_tipo">
+          <option value="">Selecione</option>
+          <option value="cefetmg">CEFET-MG</option>
+          <option value="parceira">Instituição parceira</option>
+          <option value="independente">Inventor independente</option>
+        </select>
+        <p class="field-error" hidden></p>
+      </div>
+    </div>
+
+    <div class="bloco-cefetmg" hidden>
+      <div class="row2">
+        <div class="field">
+          <label>Campus <span class="req">*</span></label>
+          <select data-campo="campus"></select>
+          <p class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label>Tipo de vínculo <span class="req">*</span></label>
+          <select data-campo="tipo_vinculo">
+            <option value="">Selecione</option>
+            <option value="servidor">Servidor</option>
+            <option value="estudante">Estudante</option>
+            <option value="temporario">Vínculo temporário</option>
+          </select>
+          <p class="field-error" hidden></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloco-parceira" hidden>
+      <div class="field">
+        <label>Qual instituição parceira? <span class="req">*</span></label>
+        <select data-campo="instituicao_parceira_idx"></select>
+        <p class="field-hint endereco-preview">Selecione a instituição parceira para ver o endereço.</p>
+        <p class="field-error" hidden></p>
+      </div>
+    </div>
+
+    <div class="bloco-independente" hidden>
+      <div class="field">
+        <label>Endereço completo <span class="req">*</span></label>
+        <input type="text" data-campo="endereco_independente" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
     </div>
 
     <div class="row2">
       <div class="field">
-        <label>Órgão expedidor</label>
-        <input type="text" data-campo="orgao_expedidor" autocomplete="off">
+        <label>Telefone de contato</label>
+        <input type="text" data-campo="telefone" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
       <div class="field">
-        <label>Nacionalidade</label>
-        <input type="text" data-campo="nacionalidade" autocomplete="off">
+        <label>E-mail <span class="req">*</span></label>
+        <input type="text" data-campo="email" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
     </div>
 
     <div class="field">
-      <label>Endereço completo <span class="req">*</span></label>
-      <input type="text" data-campo="endereco" autocomplete="off">
+      <label>E-mail alternativo <span class="email-alt-req"></span></label>
+      <input type="text" data-campo="email_alternativo" autocomplete="off">
+      <p class="field-hint">Obrigatório para vínculo temporário — é o contato que sobrevive à saída da instituição.</p>
+      <p class="field-error" hidden></p>
     </div>
 
     <div class="row2">
-      <div class="field">
-        <label>E-mail institucional</label>
-        <input type="text" data-campo="email_institucional" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>E-mail alternativo <span class="campo-email-alt-req"></span></label>
-        <input type="text" data-campo="email_alternativo" autocomplete="off">
-        <p class="field-hint">Obrigatório para vínculo temporário — é o contato que sobrevive à saída da instituição.</p>
-      </div>
-    </div>
-
-    <div class="row2">
-      <div class="field">
-        <label>Telefone</label>
-        <input type="text" data-campo="telefone" autocomplete="off">
+      <div class="field combo-box">
+        <label>Qualificação profissional</label>
+        <input type="text" data-campo="qualificacao_profissional" autocomplete="off" placeholder="Digite para buscar…">
+        <div class="combo-listbox qualificacao-listbox" hidden></div>
+        <p class="field-error" hidden></p>
       </div>
       <div class="field">
         <label>% de contribuição <span class="req">*</span></label>
         <input type="number" data-campo="percentual_contribuicao" min="0" max="100" step="1" autocomplete="off">
+        <p class="field-error" hidden></p>
       </div>
     </div>
   </div>
@@ -876,1301 +548,8 @@
 </script>
 <!-- END VENDOR -->
 
-<script>
-// Fonte: Portal de Classificação do INPI (hominpi.serpro.gov.br), tabela vigente em 05/06/2006.
-// [codigo, rotulo_curto, descricao_de_apoio_a_busca]
-var CAMPO_APLICACAO_GRUPOS = [
-["Administração",[
-["AD01","Administração","desenvolvimento organizacional, desburocratização"],
-["AD02","Função Administrativa","planejamento governamental: estratégico, operacional; organização administrativa, organograma, estrutura organizacional, controle e avaliação de desempenho"],
-["AD03","Modernização Administrativa","análise organizacional, O&M"],
-["AD04","Administração Pública","federal, estadual, municipal; direito administrativo, reforma administrativa, intervenção do Estado na economia"],
-["AD05","Administração de Empresas","negócios, privada, organização de empresas"],
-["AD06","Administração da Produção","planejamento da fábrica, engenharia do produto, protótipo, controle de qualidade"],
-["AD07","Administração de Pessoal","recrutamento, seleção, admissão, avaliação, promoção"],
-["AD08","Administração de Material","aquisição, armazenamento, almoxarifado, controle de estoque, inventário"],
-["AD09","Administração Patrimonial","inventário patrimonial, fiscalização, conservação, manutenção do patrimônio"],
-["AD10","Marketing","mercadologia, pesquisa de mercado, estratégia de marketing, administração de vendas"],
-["AD11","Administração de Escritório","serviços de escritório, comunicação administrativa, arquivo"]
-]],
-["Agricultura",[
-["AG01","Agricultura","agropecuária, desenvolvimento rural, extensão rural, política agrícola, zoneamento agrícola"],
-["AG02","Ciências Agrárias","agrologia, agronomia, agrostologia, edafologia, pomologia"],
-["AG03","Administração Agrícola","imóvel rural: fazenda, granja, empresa rural"],
-["AG04","Economia Agrícola",""],
-["AG05","Sistemas Agrícolas","agricultura extensiva, intensiva, itinerante, monocultura, policultura"],
-["AG06","Engenharia Agrícola","construção rural: açude, barragem, estufa, habitação rural, drenagem, irrigação"],
-["AG07","Edafologia","conservação de solo, controle da erosão, manejo do solo: adubação, fertilização"],
-["AG08","Fitopatologia","doenças e pragas vegetais, defensivo agrícola"],
-["AG09","Produção Vegetal","fitotecnia: cultura agrícola, lavoura, cultivo"],
-["AG10","Produção Animal","zootecnia, veterinária, zoopatologia"],
-["AG11","Ciências Florestais","dasonomia, economia florestal, silvicultura, reflorestamento"],
-["AG12","Aquacultura","aquicultura animal, vegetal"],
-["AG13","Extrativismo Vegetal","celulose, cera, fibra, goma natural, madeira, látex"],
-["AG14","Extrativismo Animal","caça, pesca, couro, pele, pescado"]
-]],
-["Antropologia e Sociologia",[
-["AN01","Sociedade","sistema social, estrutura, mobilização, controle, mudança e reforma social"],
-["AN02","Desenvolvimento Social","planejamento social, política social, bem-estar social"],
-["AN03","Grupos Sociais","tribo, etnia, grupo local, desenvolvimento comunitário"],
-["AN04","Cultura","civilização, cultura popular, folclore, usos e costumes"],
-["AN05","Religião","doutrina, teologia, prática religiosa"],
-["AN06","Antropologia","antropologia física, etnografia, etnologia"],
-["AN07","Sociologia","urbana, rural, política, econômica, do trabalho, da educação, do direito"]
-]],
-["Assentamentos Humanos",[
-["AH01","Assentamentos Humanos","povoamento, núcleo populacional, assentamento rural, urbano, cinturão verde"],
-["AH02","Cidade","metrópole, região metropolitana, rurópolis"],
-["AH03","Organização Territorial","organização do espaço, rede urbana, conurbação"],
-["AH04","Políticas de Assentamento Humano","política demográfica, migratória, planejamento familiar, política urbana"],
-["AH05","População","distribuição, mobilidade, migração, dinâmica populacional"],
-["AH06","Disciplinas Auxiliares","demografia, geografia urbana, agrária, teoria dos limiares"]
-]],
-["Biologia",[
-["BL01","Biologia","ser vivo, biometria, bioclimatologia, parasitologia, filogenia, histologia, limnologia"],
-["BL02","Genética","citogenética, engenharia genética, hereditariedade, melhoramento genético"],
-["BL03","Citologia","biologia celular, célula, meiose"],
-["BL04","Microbiologia","bacteriologia, virologia, biogeografia"],
-["BL05","Anatomia","sistema cardiovascular, digestivo, tegumentar, embriologia"],
-["BL06","Fisiologia","nascimento, digestão, reprodução, metabolismo"],
-["BL07","Bioquímica","aminoácido, proteína, hormônio, biossíntese, fermentação"],
-["BL08","Biofísica","bioenergética, biomecânica, eletrofisiologia"]
-]],
-["Botânica",[
-["BT01","Botânica","fitologia, vegetal, morfologia, fisiologia vegetal, biologia floral"],
-["BT02","Fitogeografia","caatinga, cerrado, campo, mangue"],
-["BT03","Botânica Econômica","planta condimentícia, aromática, têxtil, cereal, hortaliça"],
-["BT04","Botânica Sistemática","taxonomia vegetal"]
-]],
-["Conhecimento e Comunicação",[
-["CO01","Filosofia","metafísica, estética, ética, teoria do conhecimento, lógica"],
-["CO02","Ciência","ciências humanas, sociais, naturais, biológicas; política científica; metodologia científica"],
-["CO03","Ciências da Linguagem","linguística, sociolinguística, linguagem natural e artificial"],
-["CO04","Comunicação","comunicação de massa, propaganda, relações públicas, radiocomunicação, imprensa, editoração"],
-["CO05","Arte","criação artística, patrimônio artístico, fotografia, cinema, música, literatura"],
-["CO06","História","política, econômica, social; arqueologia, numismática, genealogia, patrimônio histórico"]
-]],
-["Construção Civil",[
-["CC01","Construção","construção civil habitacional, comercial, industrial, pré-fabricada"],
-["CC02","Processo Construtivo","tradicional, alvenaria, concreto, máquina de construção"],
-["CC03","Organização da Construção","licitação de obra, custo da construção, gerência de projeto, fiscalização"],
-["CC04","Obra Pública","engenharia civil, contrato de obra pública, obra de grande porte"],
-["CC05","Estrutura","cálculo estrutural, tipo de estrutura: concreto, aço, metálico, armadura"],
-["CC06","Edificação","prédio, edifício, fundação, pilar, viga, manutenção da construção"],
-["CC07","Tecnologia da Construção","ancoragem, concretagem, escoramento, terraplanagem, pavimentação"],
-["CC08","Higiene das Construções","ventilação, iluminação, conforto térmico, isolamento acústico"],
-["CC09","Engenharia Hidráulica","obra hidráulica, tubulação, canal, reservatório, barragem, drenagem"],
-["CC10","Solo (construção)","mecânica das rochas e dos solos, aterro, escavação, obra de contenção"]
-]],
-["Direito",[
-["DI01","Legislação","federal, estadual, municipal; hermenêutica jurídica; proteção legal"],
-["DI02","Direito Constitucional","poder constituinte, organização nacional, direitos políticos, direito eleitoral"],
-["DI03","Outras Disciplinas do Direito","previdenciário, ecológico, urbanístico, tributário, penal, civil, do trabalho, comercial, industrial"]
-]],
-["Ecologia",[
-["EL01","Ecologia","biosfera, relação biótica e abiótica, ecologia agrícola, aquática, florestal"],
-["EL02","Ecofisiologia","ecofisiologia animal e vegetal"],
-["EL03","Ecologia Humana","ecodesenvolvimento, ecologia social, ecologia urbana"],
-["EL04","Ecologia Vegetal/Animal","autoecologia, sinecologia, habitat, vida selvagem"],
-["EL05","Etologia","migração, hibernação, comportamento animal e vegetal"]
-]],
-["Economia",[
-["EC01","Economia","teoria econômica, metodologia da economia, sistema econômico"],
-["EC02","Análise Microeconômica","teoria da oferta, da produção, dos custos, da demanda, do preço"],
-["EC03","Teoria Microeconômica","demanda agregada, oferta agregada, nível de emprego"],
-["EC04","Atividade Econômica","setores primário, secundário, terciário; distribuição da renda, investimento"],
-["EC05","Contabilidade Nacional","conta nacional, PIB, PNB, renda nacional, insumo-produto"],
-["EC06","Economia Monetária","moeda, sistema monetário, reforma monetária"],
-["EC07","Mercado","demanda, oferta, mercado consumidor, externo, interno, internacional"],
-["EC08","Bens Econômicos","bens de consumo, de capital, duráveis, não duráveis"],
-["EC09","Engenharia/Dinâmica Econômica","análise custo-benefício, ciclo econômico, inflação, deflação"],
-["EC10","Economia Regional","economia local, urbana, regionalização"],
-["EC11","Propriedade","propriedade do capital, da terra, estrutura agrária, loteamento"],
-["EC12","Economia Internacional","balanço de pagamentos, câmbio, dívida externa, integração econômica"],
-["EC13","Política Econômica","fiscal, monetária, de crédito, de comércio exterior, de preços"],
-["EC14","Empresa","tipos de empresa: pública, privada, multinacional; holding, joint-venture"]
-]],
-["Educação",[
-["ED01","Ensino Regular","pré-escolar, 1º grau, 2º grau, superior, pós-graduação"],
-["ED02","Ensino Supletivo","alfabetização, aprendizagem, curso de atualização e treinamento"],
-["ED03","Instituição/Administração de Ensino","escola, universidade, evasão escolar, método de ensino, didática"],
-["ED04","Formas de Ensino / Material Instrucional","ensino direto, teleducação, radioeducação, material audiovisual"],
-["ED05","Currículo","currículo ou programa de ensino, corpo docente e discente, graus e diplomas"],
-["ED06","Educação","pedagogia, sistema educacional, rede de ensino, política educacional"]
-]],
-["Energia",[
-["EN01","Energia","política energética, economia energética, consumo de energia"],
-["EN02","Recursos/Serviços/Formas de Energia","hidrelétricos, carboníferos, petrolíferos, energia elétrica, térmica"],
-["EN03","Combustível","fóssil, vegetal, biomassa, nuclear, sólido, líquido, gasoso"],
-["EN04","Tecnologia e Energia","fonte convencional/alternativa, geração, distribuição, engenharia elétrica"],
-["EN05","Engenharia Eletrônica","microeletrônica, circuito eletrônico, semicondutor"],
-["EN06","Engenharia Nuclear","tecnologia de reatores, reator nuclear"]
-]],
-["Finanças",[
-["FN01","Finanças Públicas","receita pública, orçamento público, sistema tributário, despesa pública"],
-["FN02","Finanças Privadas",""],
-["FN03","Sistema Financeiro","instituição financeira, operações de crédito, mercado de capitais"],
-["FN04","Recursos/Orçamento/Instrumentos","orçamento, título de crédito, ação, cartão de crédito, financiamento"],
-["FN05","Administração Financeira","juro, crédito, débito, planejamento e controle financeiro"],
-["FN06","Contabilidade","financeira, gerencial, técnicas contábeis, balancete, depreciação"]
-]],
-["Física e Química",[
-["FQ01","Física das Partículas","matéria, estados da matéria, partícula elementar, ionização"],
-["FQ02","Acústica/Ótica","onda sonora, som, luz, ótica geométrica e física"],
-["FQ03","Onda","amplitude, difração, frequência, modulação, reflexão, refração, ressonância"],
-["FQ04","Metrologia","unidade de medida, dimensão, sistema de medida, medição"],
-["FQ05","Mecânica","estática, dinâmica, cinemática, força, densidade, massa, trabalho"],
-["FQ06","Física dos Sólidos/Fluídos/Plasmas","mecânica dos sólidos e fluídos, hidromecânica, plasma-física"],
-["FQ07","Termodinâmica","calor, calorimetria, temperatura, radiação térmica"],
-["FQ08","Eletrônica","quântica, linear, não linear"],
-["FQ09","Magnetismo/Eletromagnetismo","campo magnético, onda eletromagnética, micro-onda"],
-["FQ10","Física de Superfície/Dispersão","tensão superficial, capilaridade, física coloidal"],
-["FQ11","Radiação","efeito da radiação, radiação atmosférica, radiação ionizante"],
-["FQ12","Espectroscopia","espectrografia, espectrometria, espectrofotometria"],
-["FQ13","Física Molecular","física atômica, reação nuclear, estrutura molecular, radiatividade"],
-["FQ14","Química","composto químico, propriedade química, reação química, polímero"],
-["FQ15","Química Analítica / dos Polímeros","calorimetria, cromatografia, polímero orgânico e inorgânico"],
-["FQ16","Físico-Química","análise físico-química, processos físico-químicos"],
-["FQ17","Química Orgânica","composto orgânico, ácido, sal"],
-["FQ18","Química Inorgânica","elemento químico, metal, composto inorgânico, nuclídeo"]
-]],
-["Geografia e Cartografia",[
-["GC01","Geografia Física","fisiografia, geomorfologia, acidente geográfico"],
-["GC02","Geografia Humana","antropogeografia, geografia econômica, política, da população"],
-["GC03","Geografia Regional","região homogênea, zona geográfica"],
-["GC04","Orientação Geográfica","pontos cardeais, colaterais, hemisfério"],
-["GC05","Geodesia","astronômica, espacial, gravimétrica, levantamento geodésico"],
-["GC06","Topografia","topometria, planimetria, altimetria, sensoriamento remoto"],
-["GC07","Fotogrametria","fotogrametria terrestre, aerofotogrametria"],
-["GC08","Mapeamento","mapa, carta, fotocarta, mosaico"],
-["GC09","Métodos e Processos de Cartografia","processo astrogeodésico, método das direções"],
-["GC10","Plano Cartográfico","azimute, ponto meridiano, paralelo, polo geográfico"]
-]],
-["Geologia",[
-["GL01","Geologia Física","intemperismo, erosão, tectonismo, geologia estrutural"],
-["GL02","Glaciologia","criologia, glaciação, moraina"],
-["GL03","Geotectônica","tectônica, geodinâmica, sismologia"],
-["GL04","Geologia Marinha","fotogeologia, mapeamento geológico"],
-["GL05","Geologia Histórica","paleontologia, sedimentologia, estratigrafia"],
-["GL06","Geologia Econômica","petrologia, petrografia, jazida mineral, prospecção, mineralogia"],
-["GL07","Geoquímica / Hidrogeologia / Geofísica / Geotécnica","geoquímica dos solos e rochas, água subterrânea, ensaio geotécnico"]
-]],
-["Habitação",[
-["HB01","Habitação","moradia, função habitacional, mercado e política habitacional"],
-["HB02","Tipologia Habitacional","unifamiliar, multifamiliar, habitação provisória"]
-]],
-["Hidrologia e Oceanografia",[
-["HD01","Hidrologia","água, ciclo hidrológico"],
-["HD02","Hidrografia","bacia hidrográfica, curso de água, bacia lacustre"],
-["HD03","Hidrometria","fluviometria, pluviometria, estação hidrométrica"],
-["HD04","Oceanografia","oceano, mar; física, química, biológica, geológica, batimetria"]
-]],
-["Indústria",[
-["IN01","Indústria","política industrial, produção industrial, empresa industrial"],
-["IN02","Tecnologia","política tecnológica, cooperação técnica, inovação tecnológica"],
-["IN03","Engenharia","desenho técnico, engenharia metalúrgica, química, mecânica, automotiva, aeronáutica"],
-["IN04","Indústria Extrativa Mineral","política mineral, mineração, extrativismo mineral"],
-["IN05","Indústria de Transformação","manufatureira, industrialização, gênero da indústria: metalúrgica, química, têxtil"]
-]],
-["Informação",[
-["IF01","Informação","científica, tecnológica, bibliográfica, estratégica, dados"],
-["IF02","Documentação","processamento, armazenamento, recuperação, disseminação, bibliometria"],
-["IF03","Reprografia","fotocópia, microfotografia, microfilmagem"],
-["IF04","Documento","informação registrada, documento científico, confidencial, obra de referência"],
-["IF05","Biblioteconomia","administração de biblioteca, processos técnicos"],
-["IF06","Arquivologia","arquivística, administração de arquivos"],
-["IF07","Ciência da Informação","sistema de informação, rede de informação, fluxo de informação"],
-["IF08","Serviços de Informação","biblioteca, centro de documentação, arquivo, museu"],
-["IF09","Uso da Informação","usuário, estudo e perfil do usuário"],
-["IF10","Genérico (Informação)","processamento de dados"]
-]],
-["Matemática",[
-["MT01","Lógica Matemática","metamatemática, método e processo matemático, teoria lógica"],
-["MT02","Álgebra","teoria dos conjuntos, teoria dos números, estrutura algébrica"],
-["MT03","Geometria","geometria plana, sólida, analítica, trigonometria, descritiva"],
-["MT04","Análise Matemática","topologia, análise real, numérica, complexa, vetorial, funcional"],
-["MT05","Cálculo","diferencial, integral, operacional, vetorial, matricial, numérico"],
-["MT06","Matemática Aplicada","modelo matemático, estatística, probabilidade, pesquisa operacional, matemática atuarial"]
-]],
-["Meio Ambiente",[
-["MA01","Meio Ambiente","artificial, natural, política do meio ambiente"],
-["MA02","Recursos Naturais","conservação, recursos renováveis e não renováveis, área protegida"],
-["MA03","Poluição","atmosférica, do solo, da água, química, radioativa, sonora"],
-["MA04","Qualidade Ambiental","qualidade da água e do ar, monitoramento ambiental, engenharia ambiental"]
-]],
-["Meteorologia e Climatologia",[
-["ME01","Metodologia (Meteorologia)","física, dinâmica, aplicada"],
-["ME02","Atmosfera","circulação e pressão atmosférica, previsão meteorológica, vento, radiação solar"],
-["ME03","Climatologia","clima, aclimatação, agroclimatologia, tipos de clima"]
-]],
-["Pedologia",[
-["PD01","Pedologia","ciência do solo; solo mineral ou orgânico"],
-["PD02","Pedogênese","formação do solo, morfopedologia, química e biologia do solo"],
-["PD03","Tipos de Solo",""]
-]],
-["Política",[
-["PL01","Ciência Política","teoria política, metodologia política"],
-["PL02","Política","sistema político, Estado, soberania, formas de governo, regime político"]
-]],
-["Previdência e Assistência Social",[
-["PR01","Previdência","seguridade social, previdência social e privada"],
-["PR02","Benefícios Previdenciários","aposentadoria, auxílio, pecúlio, abono"],
-["PR03","Assistência Social","médica, odontológica, alimentar, habitacional, serviço social"]
-]],
-["Psicologia",[
-["PS01","Psicologia","comportamento, psicologia social, aplicada, clínica, educacional"],
-["PS02","Comportamento","conduta humana, motivação"],
-["PS03","Teoria Psicológica","behaviorismo, psicologia existencialista"]
-]],
-["Saneamento",[
-["SM01","Saneamento","engenharia sanitária, saneamento básico"],
-["SM02","Resíduo","lixo, resíduo gasoso, líquido, orgânico, químico, tóxico"],
-["SM03","Limpeza","limpeza pública, drenagem urbana, coleta e destinação de lixo"],
-["SM04","Abastecimento de Água","captação, adução, tratamento, reservatório, distribuição"],
-["SM05","Esgoto","serviço de esgoto sanitário e industrial, tratamento"]
-]],
-["Saúde",[
-["SD01","Saúde","política de saúde, higiene, saúde física, mental, pública"],
-["SD02","Administração Sanitária","serviços de saúde, hospital, sistema de saúde, educação sanitária"],
-["SD03","Doença","congênita, infecciosa, do sistema reprodutor, do sistema glandular"],
-["SD04","Deficiência Física","física, mental"],
-["SD05","Assistência Médica","hospitalar, domiciliar, ambulatorial"],
-["SD06","Terapia e Diagnóstico","fisioterapia, hemoterapia, diagnóstico laboratorial e radiológico"],
-["SD07","Medicina","alopática, homeopática, preventiva, tropical, nuclear, legal, de urgência"],
-["SD08","Especialidades Médicas","cardiologia, endocrinologia, epidemiologia, ginecologia, psiquiatria, radiologia"],
-["SD09","Engenharia Biomédica","bioengenharia, biotecnologia, enfermagem, fonoaudiologia"],
-["SD10","Farmacologia","assistência farmacêutica, toxicologia, medicamento"],
-["SD11","Odontologia","saúde oral, periodontia, prótese dentária"]
-]],
-["Serviços",[
-["SV01","Serviços","públicos: telefonia, correio, energia elétrica; privados: alojamento, reparo, vigilância"],
-["SV02","Seguro","social, privado, pessoal, patrimonial, contrato de seguro"],
-["SV03","Comércio","interno, exterior, comercialização, corretagem, mercadoria, zona franca"],
-["SV04","Turismo","política de turismo, intercâmbio turístico, agência de turismo"]
-]],
-["Telecomunicações",[
-["TC01","Telecomunicações","política de telecomunicações, modelo de telecomunicações"],
-["TC02","Sistemas de Telecomunicações","radiocomunicação, televisão, telefonia, radar, transmissão de dados"],
-["TC03","Engenharia de Telecomunicações","linha de comunicação, recepção, transmissão"],
-["TC04","Serviços/Redes de Telecomunicações","serviços, redes, estações e material"]
-]],
-["Trabalho",[
-["TB01","Trabalho","intelectual, técnico, manual, mecanizado, rural, doméstico"],
-["TB02","Recursos Humanos","desenvolvimento de RH, pessoal trabalhador, classe trabalhadora"],
-["TB03","Mercado de Trabalho","política empregatícia, salarial, desemprego, subemprego"],
-["TB04","Condições de Trabalho","ergonomia, ambiente de trabalho"],
-["TB05","Estrutura Ocupacional","ocupação, profissão liberal, sindicato, emprego, cargo"],
-["TB06","Lazer","recreação, colônia de férias"]
-]],
-["Transporte",[
-["TP01","Transporte","política de transporte, planejamento de transporte"],
-["TP02","Sistema de Transporte","doméstico, regional, urbano, integrado; infraestrutura de transporte"],
-["TP03","Serviços de Transporte","transporte de carga, de passageiro, linha de transporte"],
-["TP04","Engenharia de Transporte","de tráfego, aeronáutica, ferroviária, rodoviária, naval, automotiva"],
-["TP05","Modalidades de Transporte","aéreo, terrestre, hidroviário, dutoviário, vertical"]
-]],
-["Urbanismo",[
-["UB01","Urbanismo","organização do espaço urbano, projeto urbanístico, planejamento urbano"],
-["UB02","Solo Urbano","imóvel urbano, parcelamento do solo, cadastro imobiliário, tributação urbana"],
-["UB03","Área Urbana","zona urbana, estrutura urbana, uso do solo, zoneamento urbano"],
-["UB04","Circulação Urbana","via de circulação, terminal de transporte, tráfego urbano"],
-["UB05","Arquitetura","projeto de arquitetura, doméstica, industrial, institucional, de interiores"]
-]]
-];
-
-var TIPO_PROGRAMA_GRUPOS = [
-["Sistemas Operacionais",[
-["SO01","Sistema Operacional",""],
-["SO02","Interface de Entrada e Saída",""],
-["SO03","Interface Básica de Disco",""],
-["SO04","Interface de Comunicação",""],
-["SO05","Gerenciador de Usuários",""],
-["SO06","Administrador de Dispositivos",""],
-["SO07","Controlador de Processos",""],
-["SO08","Controlador de Redes",""],
-["SO09","Processador de Comandos",""]
-]],
-["Linguagens",[
-["LG01","Linguagens",""],
-["LG02","Compilador",""],
-["LG03","Montador",""],
-["LG04","Pré-Compilador",""],
-["LG05","Compilador Cruzado",""],
-["LG06","Pré-Processador",""],
-["LG07","Interpretador",""],
-["LG08","Linguagem Procedural",""],
-["LG09","Linguagem Não Procedural",""]
-]],
-["Gerenciamento de Informações",[
-["GI01","Gerenciador de Informações",""],
-["GI02","Gerenciador de Banco de Dados",""],
-["GI03","Gerador de Telas",""],
-["GI04","Gerador de Relatórios",""],
-["GI05","Dicionário de Dados",""],
-["GI06","Entrada e Validação de Dados",""],
-["GI07","Organização, Tratamento e Manutenção de Arquivos",""],
-["GI08","Recuperação de Dados",""]
-]],
-["Comunicação de Dados",[
-["CD01","Comunicação de Dados",""],
-["CD02","Emuladores de Terminais",""],
-["CD03","Monitores de Teleprocessamento",""],
-["CD04","Gerenciador de Dispositivos e Periféricos",""],
-["CD05","Gerenciador de Rede de Comunicação de Dados",""],
-["CD06","Rede Local",""]
-]],
-["Ferramentas de Apoio",[
-["FA01","Ferramenta de Apoio",""],
-["FA02","Processadores de Texto",""],
-["FA03","Planilhas Eletrônicas",""],
-["FA04","Geradores de Gráficos",""]
-]],
-["Suporte ao Desenvolvimento de Sistemas",[
-["DS01","Ferramentas de Suporte ao Desenvolvimento de Sistemas",""],
-["DS02","Gerador de Aplicações",""],
-["DS03","CASE","Computer Aided Software Engineering"],
-["DS04","Desenvolvido conforme Metodologia Determinada",""],
-["DS05","Bibliotecas de Rotinas","libraries"],
-["DS06","Apoio à Programação",""],
-["DS07","Suporte à Documentação",""],
-["DS08","Conversor de Sistemas",""]
-]],
-["Avaliação",[
-["AV01","Avaliação de Desempenho",""],
-["AV02","Contabilização de Recursos",""]
-]],
-["Segurança e Proteção de Dados",[
-["PD01","Segurança e Proteção de Dados",""],
-["PD02","Senha",""],
-["PD03","Criptografia",""],
-["PD04","Manutenção da Integridade dos Dados",""],
-["PD05","Controle de Acessos",""]
-]],
-["Simulação e Modelagem",[
-["SM01","Simulação e Modelagem",""],
-["SM02","Simulador","voo, carro, submarino"],
-["SM03","Simuladores de Ambiente Operacional",""],
-["SM04","CAE/CAD/CAM","CAE/CAD/CAM/CAL/CBT"]
-]],
-["Inteligência Artificial",[
-["IA01","Inteligência Artificial",""],
-["IA02","Sistemas Especialistas",""],
-["IA03","Processamento de Linguagem Natural",""]
-]],
-["Instrumentação",[
-["IT01","Instrumentação",""],
-["IT02","Instrumentação de Teste e Medição",""],
-["IT03","Instrumentação Biomédica",""],
-["IT04","Instrumentação Analítica",""]
-]],
-["Automação",[
-["AT01","Automação",""],
-["AT02","Automação de Escritório",""],
-["AT03","Automação Comercial",""],
-["AT04","Automação Bancária",""],
-["AT05","Automação Industrial",""],
-["AT06","Controle de Processos",""],
-["AT07","Automação da Manufatura","controle numérico computadorizado, robótica"],
-["AT08","Eletrônica Automotiva","computador de bordo, injeção e ignição eletrônica"]
-]],
-["Teleinformática",[
-["TI01","Teleinformática",""],
-["TI02","Terminais",""],
-["TI03","Transmissão de Dados",""],
-["TI04","Comutação de Dados",""]
-]],
-["Comutação Telefônica",[
-["CT01","Comutação Telefônica e Telegráfica",""],
-["CT02","Implementador de Funções Adicionais",""],
-["CT03","Gerenciador de Operação e Manutenção",""],
-["CT04","Terminal de Operação e Manutenção de Central",""]
-]],
-["Utilitários",[
-["UT01","Utilitários",""],
-["UT02","Compressor de Dados",""],
-["UT03","Conversor de Meios de Armazenamento",""],
-["UT04","Classificador/Intercalador",""],
-["UT05","Controlador de Spool",""],
-["UT06","Transferência de Arquivos",""]
-]],
-["Aplicativos",[
-["AP01","Aplicativos",""],
-["AP02","Planejamento",""],
-["AP03","Controle",""],
-["AP04","Auditoria",""],
-["AP05","Contabilização",""]
-]],
-["Aplicações Técnico-Científicas",[
-["TC01","Aplicações Técnico-Científicas",""],
-["TC02","Pesquisa Operacional",""],
-["TC03","Reconhecimento de Padrões",""],
-["TC04","Processamento de Imagem",""]
-]],
-["Entretenimento",[
-["ET01","Entretenimento",""],
-["ET02","Jogos Animados","arcade games"],
-["ET03","Geradores de Desenhos",""],
-["ET04","Simuladores Destinados ao Lazer",""]
-]]
-];
-
-(function(){
-  "use strict";
-
-  var LINGUAGENS_COMUNS = ["Python","JavaScript","TypeScript","Java","C","C++","C#","PHP","Go","R","SQL","HTML/CSS","Shell/Bash","Kotlin"];
-  var VINCULOS_TEMPORARIOS = { substituto: true, discente: true, bolsista: true, externo: true };
-
-  function autorVazio(){
-    return {
-      nome: "", vinculo: "", instituicao: "",
-      cpf: "", rg: "", orgao_expedidor: "", nacionalidade: "",
-      endereco: "", email_institucional: "", email_alternativo: "",
-      telefone: "", percentual_contribuicao: ""
-    };
-  }
-
-  var state = {
-    linguagens: [],
-    area_aplicacao: [],
-    tipo_programa: [],
-    palavras_chave: [],
-    autores: [autorVazio()]
-  };
-
-  var formularioSujo = false;
-
-  function $(id){ return document.getElementById(id); }
-
-  function normalize(s){
-    return (s || "").toString().toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "");
-  }
-
-  function flattenGroups(groups){
-    var flat = [];
-    groups.forEach(function(g){
-      var groupName = g[0];
-      g[1].forEach(function(row){
-        var code = row[0], short = row[1], desc = row[2];
-        var value = code + " - " + short;
-        flat.push({
-          code: code, short: short, desc: desc, group: groupName, value: value,
-          search: normalize([code, short, desc, groupName].join(" "))
-        });
-      });
-    });
-    return flat;
-  }
-
-  var CAMPO_APLICACAO_ITEMS = flattenGroups(CAMPO_APLICACAO_GRUPOS);
-  var TIPO_PROGRAMA_ITEMS = flattenGroups(TIPO_PROGRAMA_GRUPOS);
-
-  // ---- tags genéricas (usadas por chip-picker, combobox e adição livre) --
-
-  function renderTags(key){
-    var listIds = {
-      linguagens: "linguagens-tags",
-      area_aplicacao: "area-tags",
-      tipo_programa: "tipo-tags",
-      palavras_chave: "palavras-tags"
-    };
-    var list = $(listIds[key]);
-    list.innerHTML = "";
-    state[key].forEach(function(value){
-      var tag = document.createElement("span");
-      tag.className = "tag";
-      var text = document.createElement("span");
-      text.textContent = value;
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = "×";
-      btn.setAttribute("aria-label", "Remover " + value);
-      btn.addEventListener("click", function(){ removeTag(key, value); });
-      tag.appendChild(text);
-      tag.appendChild(btn);
-      list.appendChild(tag);
-    });
-  }
-
-  function addTagValue(key, value){
-    value = (value || "").trim();
-    if(!value || state[key].indexOf(value) !== -1) return false;
-    state[key].push(value);
-    renderTags(key);
-    renderOutput();
-    return true;
-  }
-
-  function removeTag(key, value){
-    var idx = state[key].indexOf(value);
-    if(idx !== -1) state[key].splice(idx, 1);
-    if(key === "linguagens"){
-      var inputs = $("linguagens-chips").querySelectorAll("input[type=checkbox]");
-      inputs.forEach(function(inp){
-        if(inp.value === value){
-          inp.checked = false;
-          inp.closest(".chip").classList.remove("checked");
-        }
-      });
-    }
-    renderTags(key);
-    renderOutput();
-  }
-
-  function replaceTagValues(key, values){
-    state[key] = Array.isArray(values) ? values.slice() : [];
-    renderTags(key);
-    if(key === "linguagens"){
-      var inputs = $("linguagens-chips").querySelectorAll("input[type=checkbox]");
-      inputs.forEach(function(inp){
-        var checked = state.linguagens.indexOf(inp.value) !== -1;
-        inp.checked = checked;
-        inp.closest(".chip").classList.toggle("checked", checked);
-      });
-    }
-  }
-
-  // ---- chip picker (linguagens) ------------------------------------------
-
-  function buildChipPicker(containerId, options, stateKey){
-    var container = $(containerId);
-    options.forEach(function(opt){
-      var label = document.createElement("label");
-      label.className = "chip";
-      var input = document.createElement("input");
-      input.type = "checkbox";
-      input.value = opt;
-      input.addEventListener("change", function(){
-        label.classList.toggle("checked", input.checked);
-        if(input.checked){ addTagValue(stateKey, opt); }
-        else { removeTag(stateKey, opt); }
-      });
-      label.appendChild(input);
-      label.appendChild(document.createTextNode(opt));
-      container.appendChild(label);
-    });
-  }
-
-  buildChipPicker("linguagens-chips", LINGUAGENS_COMUNS, "linguagens");
-
-  document.querySelectorAll("[data-add-tag]").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      var key = btn.getAttribute("data-add-tag");
-      var inputId = key === "linguagens" ? "linguagens-custom" : "palavras-custom";
-      var input = $(inputId);
-      if(addTagValue(key, input.value)) input.value = "";
-      input.focus();
-    });
-  });
-
-  ["linguagens-custom","palavras-custom"].forEach(function(id){
-    $(id).addEventListener("keydown", function(e){
-      if(e.key === "Enter"){
-        e.preventDefault();
-        var key = id === "linguagens-custom" ? "linguagens" : "palavras_chave";
-        if(addTagValue(key, $(id).value)) $(id).value = "";
-      }
-    });
-  });
-
-  // ---- combobox de busca (área de aplicação / tipo de programa) ---------
-
-  var MAX_RESULTS = 40;
-
-  function buildSearchPicker(inputId, listboxId, items, stateKey){
-    var input = $(inputId);
-    var listbox = $(listboxId);
-
-    function close(){ listbox.hidden = true; listbox.innerHTML = ""; }
-
-    function renderResults(){
-      var q = normalize(input.value);
-      listbox.innerHTML = "";
-      if(q.length < 2){
-        var hint = document.createElement("div");
-        hint.className = "combo-hint";
-        hint.textContent = "Digite pelo menos 2 letras para buscar.";
-        listbox.appendChild(hint);
-        listbox.hidden = false;
-        return;
-      }
-      var matches = items.filter(function(it){ return it.search.indexOf(q) !== -1; });
-      if(matches.length === 0){
-        var empty = document.createElement("div");
-        empty.className = "combo-empty";
-        empty.textContent = "Nenhum item encontrado para “" + input.value + "”.";
-        listbox.appendChild(empty);
-        listbox.hidden = false;
-        return;
-      }
-      var shown = matches.slice(0, MAX_RESULTS);
-      var lastGroup = null;
-      shown.forEach(function(it){
-        if(it.group !== lastGroup){
-          var gl = document.createElement("div");
-          gl.className = "combo-group-label";
-          gl.textContent = it.group;
-          listbox.appendChild(gl);
-          lastGroup = it.group;
-        }
-        var opt = document.createElement("button");
-        opt.type = "button";
-        opt.className = "combo-option";
-        var codeSpan = "<span class=\"code\">" + it.code + "</span>" + it.short;
-        var descHtml = it.desc ? "<span class=\"desc\">" + it.desc + "</span>" : "";
-        opt.innerHTML = codeSpan + descHtml;
-        opt.addEventListener("click", function(){
-          addTagValue(stateKey, it.value);
-          input.value = "";
-          close();
-          input.focus();
-        });
-        listbox.appendChild(opt);
-      });
-      if(matches.length > shown.length){
-        var more = document.createElement("div");
-        more.className = "combo-more";
-        more.textContent = (matches.length - shown.length) + " outro(s) resultado(s) — refine a busca para ver.";
-        listbox.appendChild(more);
-      }
-      listbox.hidden = false;
-    }
-
-    input.addEventListener("input", renderResults);
-    input.addEventListener("focus", renderResults);
-    input.addEventListener("keydown", function(e){
-      if(e.key === "Escape"){ close(); }
-      if(e.key === "Enter"){
-        e.preventDefault();
-        var first = listbox.querySelector(".combo-option");
-        if(first) first.click();
-      }
-    });
-    document.addEventListener("click", function(e){
-      if(!input.contains(e.target) && !listbox.contains(e.target)) close();
-    });
-  }
-
-  buildSearchPicker("area-search", "area-listbox", CAMPO_APLICACAO_ITEMS, "area_aplicacao");
-  buildSearchPicker("tipo-search", "tipo-listbox", TIPO_PROGRAMA_ITEMS, "tipo_programa");
-
-  // ---- autores (repeatable, com campos sensíveis) ------------------------
-
-  function atualizarVisibilidadeAutor(card, autor){
-    card.querySelector(".campo-instituicao").hidden = autor.vinculo !== "externo";
-    card.querySelector(".campo-email-alt-req").textContent =
-      VINCULOS_TEMPORARIOS[autor.vinculo] ? "obrigatório" : "";
-  }
-
-  function criarCardAutor(autor, index){
-    var fragmento = $("tpl-autor").content.cloneNode(true);
-    var card = fragmento.querySelector(".author-card");
-    card.querySelector(".autor-titulo").textContent = "Autor " + (index + 1);
-
-    var removerBtn = card.querySelector('[data-action="remover"]');
-    if(state.autores.length <= 1){
-      removerBtn.style.display = "none";
-    } else {
-      removerBtn.addEventListener("click", function(){
-        state.autores.splice(index, 1);
-        renderAutores();
-        renderOutput();
-      });
-    }
-
-    card.querySelectorAll("[data-campo]").forEach(function(campo){
-      var nome = campo.dataset.campo;
-      campo.value = autor[nome] != null ? autor[nome] : "";
-    });
-
-    atualizarVisibilidadeAutor(card, autor);
-    return card;
-  }
-
-  function renderAutores(){
-    var container = $("autores-list");
-    container.innerHTML = "";
-    state.autores.forEach(function(autor, i){
-      container.appendChild(criarCardAutor(autor, i));
-    });
-  }
-
-  $("autores-list").addEventListener("input", sincronizarCampoAutor);
-  $("autores-list").addEventListener("change", sincronizarCampoAutor);
-
-  function sincronizarCampoAutor(e){
-    var campo = e.target.closest("[data-campo]");
-    if(!campo) return;
-    var card = e.target.closest(".author-card");
-    var lista = $("autores-list");
-    var index = Array.prototype.indexOf.call(lista.children, card);
-    if(index === -1) return;
-    state.autores[index][campo.dataset.campo] = campo.value;
-    if(campo.dataset.campo === "vinculo"){
-      atualizarVisibilidadeAutor(card, state.autores[index]);
-    }
-    renderOutput();
-  }
-
-  $("add-autor").addEventListener("click", function(){
-    state.autores.push(autorVazio());
-    renderAutores();
-    renderOutput();
-  });
-
-  renderAutores();
-
-  // ---- interesse externo toggle ------------------------------------------
-
-  $("interesse_existe").addEventListener("change", function(){
-    $("interesse-descricao-wrap").hidden = !$("interesse_existe").checked;
-    renderOutput();
-  });
-
-  // ---- descrição curta char counter --------------------------------------
-
-  $("descricao_curta").addEventListener("input", function(){
-    var n = $("descricao_curta").value.length;
-    var counter = $("descricao-count");
-    counter.textContent = n + " caracteres (mínimo 20)";
-    counter.classList.toggle("short", n < 20);
-    renderOutput();
-  });
-
-  // ---- release / hash: extrair do texto colado do README -----------------
-
-  function extrairSha256(texto){
-    var m = (texto || "").match(/\b([0-9a-fA-F]{64})\b/);
-    return m ? m[1].toLowerCase() : "";
-  }
-
-  function extrairTag(texto){
-    texto = texto || "";
-    var m = texto.match(/(?:Release|Tag)[^\n]{0,20}?\b(v?\d+\.\d+\.\d+[\w.\-]*)\b/i);
-    if(!m) m = texto.match(/\b(v\d+\.\d+\.\d+[\w.\-]*)\b/);
-    return m ? m[1] : "";
-  }
-
-  $("release-paste").addEventListener("input", function(){
-    var texto = $("release-paste").value;
-    var tag = extrairTag(texto);
-    var sha = extrairSha256(texto);
-    if(tag) $("release-tag").value = tag;
-    if(sha) $("release-sha256").value = sha;
-    renderOutput();
-  });
-
-  // ---- CPF (dígito verificador) -------------------------------------------
-
-  function cpfValido(cpf){
-    var d = (cpf || "").replace(/\D/g, "");
-    if(d.length !== 11) return false;
-    if(/^(\d)\1{10}$/.test(d)) return false;
-
-    function digitoVerificador(tamanho){
-      var soma = 0;
-      for(var i = 0; i < tamanho; i++){
-        soma += parseInt(d[i], 10) * ((tamanho + 1) - i);
-      }
-      var resto = (soma * 10) % 11;
-      return resto === 10 ? 0 : resto;
-    }
-
-    return digitoVerificador(9) === parseInt(d[9], 10) &&
-           digitoVerificador(10) === parseInt(d[10], 10);
-  }
-
-  // ---- build payload + validação ------------------------------------------
-
-  function buildPayload(){
-    var autoresValidos = state.autores.map(function(a){
-      var obj = {
-        nome: (a.nome || "").trim(),
-        vinculo: a.vinculo || "",
-        cpf: (a.cpf || "").trim(),
-        rg: (a.rg || "").trim(),
-        orgao_expedidor: (a.orgao_expedidor || "").trim(),
-        nacionalidade: (a.nacionalidade || "").trim(),
-        endereco: (a.endereco || "").trim(),
-        email_institucional: (a.email_institucional || "").trim(),
-        email_alternativo: (a.email_alternativo || "").trim(),
-        telefone: (a.telefone || "").trim(),
-        percentual_contribuicao: a.percentual_contribuicao === "" ? "" : parseFloat(a.percentual_contribuicao)
-      };
-      if(a.vinculo === "externo" && (a.instituicao || "").trim()){
-        obj.instituicao = a.instituicao.trim();
-      }
-      return obj;
-    });
-
-    var trlValue = $("trl").value;
-
-    var software = {
-      titulo: $("titulo").value.trim(),
-      sigla: $("sigla").value.trim(),
-      descricao_curta: $("descricao_curta").value.trim(),
-      linguagens: state.linguagens,
-      area_aplicacao: state.area_aplicacao,
-      tipo_programa: state.tipo_programa,
-      palavras_chave: state.palavras_chave,
-      trl: trlValue ? parseInt(trlValue, 10) : "",
-      origem: {
-        tipo: $("origem_tipo").value,
-        vinculo: $("origem_vinculo").value.trim()
-      },
-      possui_colaborador_externo: $("possui_colaborador_externo").checked,
-      corresponsavel_efetivo: $("corresponsavel_efetivo").value.trim(),
-      contato_disponivel: $("contato_disponivel").checked,
-      interesse_externo: {
-        existe: $("interesse_existe").checked,
-        descricao: $("interesse_existe").checked ? $("interesse_descricao").value.trim() : ""
-      },
-      uso_institucional: $("uso_institucional").checked,
-      licenca_pretendida: $("licenca_pretendida").value,
-      possui_dependencias_terceiros: $("possui_dependencias_terceiros").checked
-    };
-
-    return {
-      software: software,
-      autores: autoresValidos,
-      release: {
-        tag: $("release-tag").value.trim(),
-        sha256: $("release-sha256").value.trim().toLowerCase()
-      },
-      gerado_em: new Date().toISOString().slice(0, 10),
-      versao_fluxo: "0.2"
-    };
-  }
-
-  function validate(payload){
-    var pending = [];
-    var sw = payload.software;
-
-    if(sw.titulo.length < 3) pending.push("Título precisa de pelo menos 3 caracteres");
-    if(sw.descricao_curta.length < 20) pending.push("Descrição curta precisa de pelo menos 20 caracteres");
-    if(sw.linguagens.length < 1) pending.push("Selecione ao menos uma linguagem");
-    if(sw.tipo_programa.length < 1) pending.push("Selecione ao menos um tipo de programa");
-    if(!sw.trl) pending.push("Selecione o TRL");
-    if(!sw.origem.tipo) pending.push("Selecione a origem do software");
-
-    if(!payload.release.tag) pending.push("Informe a Release (copie do README)");
-    if(!/^[0-9a-f]{64}$/.test(payload.release.sha256)) pending.push("SHA-256 precisa ter 64 caracteres hexadecimais");
-
-    if(payload.autores.length < 1){
-      pending.push("Adicione ao menos um autor");
-    }
-
-    var somaPercentual = 0;
-    var temPercentual = false;
-    payload.autores.forEach(function(a, i){
-      var rotulo = "Autor " + (i + 1) + (a.nome ? " (" + a.nome + ")" : "");
-      if(!a.nome || a.nome.length < 3) pending.push(rotulo + ": nome precisa de pelo menos 3 caracteres");
-      if(!a.vinculo) pending.push(rotulo + ": selecione o vínculo");
-      if(!cpfValido(a.cpf)) pending.push(rotulo + ": CPF ausente ou inválido");
-      if(!a.rg) pending.push(rotulo + ": RG obrigatório");
-      if(!a.endereco) pending.push(rotulo + ": endereço obrigatório");
-      if(!a.email_institucional && !a.email_alternativo) pending.push(rotulo + ": informe ao menos um e-mail");
-      if(VINCULOS_TEMPORARIOS[a.vinculo] && !a.email_alternativo){
-        pending.push(rotulo + ": e-mail alternativo obrigatório para vínculo temporário");
-      }
-      if(a.vinculo === "externo" && !sw.possui_colaborador_externo){
-        pending.push(rotulo + ": vínculo externo, mas \"Há colaborador sem vínculo\" não está marcado acima");
-      }
-      if(a.percentual_contribuicao === "" || isNaN(a.percentual_contribuicao)){
-        pending.push(rotulo + ": informe o percentual de contribuição");
-      } else {
-        temPercentual = true;
-        somaPercentual += a.percentual_contribuicao;
-      }
-    });
-
-    if(temPercentual && Math.abs(somaPercentual - 100) > 0.5){
-      pending.push("A soma dos percentuais de contribuição precisa ser 100 (está em " + somaPercentual + ")");
-    }
-
-    return pending;
-  }
-
-  function renderOutput(){
-    var payload = buildPayload();
-    var pending = validate(payload);
-    var box = $("validation-box");
-    if(pending.length === 0){
-      box.className = "validation-box ok";
-      box.innerHTML = "<strong>Pronto para gerar o PDF.</strong> Ainda assim, revise os dados antes de anexar ao processo no SIPAC.";
-    } else {
-      box.className = "validation-box pending";
-      box.innerHTML = "<strong>" + pending.length + " item(ns) pendente(s):</strong><ul>" +
-        pending.map(function(p){ return "<li>" + p + "</li>"; }).join("") +
-        "</ul>";
-    }
-    $("btn-gerar-pdf").disabled = pending.length > 0;
-    return payload;
-  }
-
-  $("gerador").addEventListener("input", function(){ formularioSujo = true; renderOutput(); });
-  $("gerador").addEventListener("change", function(){ formularioSujo = true; renderOutput(); });
-
-  window.addEventListener("beforeunload", function(e){
-    if(formularioSujo){
-      e.preventDefault();
-      e.returnValue = "";
-    }
-  });
-
-  // ---- geração do PDF (pdf-lib, vendorizado, zero rede) -------------------
-
-  function dividirEmLinhas(texto, tamanho){
-    var linhas = [];
-    for(var i = 0; i < texto.length; i += tamanho){
-      linhas.push(texto.slice(i, i + tamanho));
-    }
-    return linhas;
-  }
-
-  function sha256Hex(texto){
-    var bytes = new TextEncoder().encode(texto);
-    return crypto.subtle.digest("SHA-256", bytes).then(function(buffer){
-      return Array.prototype.map.call(new Uint8Array(buffer), function(b){
-        return ("0" + b.toString(16)).slice(-2);
-      }).join("");
-    });
-  }
-
-  function nomeArquivoPdf(payload){
-    var base = normalize(payload.software.sigla || payload.software.titulo || "software")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "software";
-    return "submissao-" + base + "-sipac.pdf";
-  }
-
-  function baixarArquivo(dados, nome, tipo){
-    var blob = new Blob([dados], { type: tipo });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = nome;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    // Revogar cedo demais corrompe downloads grandes em alguns navegadores —
-    // o clique dispara o download de forma assíncrona, então o blob precisa
-    // sobreviver um instante além do click().
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-  }
-
-  function mostrarStatusPdf(texto, tipo){
-    var el = $("pdf-status");
-    el.textContent = texto;
-    el.className = "pdf-status show " + tipo;
-  }
-
-  function gerarPdf(payload){
-    var PDFLib = window.PDFLib;
-    var LARGURA = 595.28, ALTURA = 841.89, MARGEM = 50;
-    var LARGURA_UTIL = LARGURA - 2 * MARGEM;
-
-    return PDFLib.PDFDocument.create().then(function(pdfDoc){
-      return Promise.all([
-        pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica),
-        pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold),
-        pdfDoc.embedFont(PDFLib.StandardFonts.Courier)
-      ]).then(function(fontes){
-        var fonte = fontes[0], fonteNegrito = fontes[1], fonteMono = fontes[2];
-
-        pdfDoc.setTitle("Submissão de software — " + (payload.software.titulo || "sem título"));
-        pdfDoc.setAuthor("NIT/CEFET-MG");
-        pdfDoc.setSubject("Dados para instrução do processo no SIPAC");
-        pdfDoc.setKeywords(["NIT", "CEFET-MG", "SIPAC", "software"].concat(payload.software.palavras_chave || []));
-        pdfDoc.setProducer("Gerador de PDF do SIPAC — NIT/CEFET-MG");
-        pdfDoc.setCreationDate(new Date());
-
-        var fluxo = { pagina: null, y: 0 };
-
-        function novaPagina(){
-          fluxo.pagina = pdfDoc.addPage([LARGURA, ALTURA]);
-          fluxo.y = ALTURA - MARGEM;
-        }
-        novaPagina();
-
-        function linha(texto, opcoes){
-          opcoes = opcoes || {};
-          var tamanho = opcoes.tamanho || 10;
-          var fonteUsada = opcoes.negrito ? fonteNegrito : (opcoes.mono ? fonteMono : fonte);
-          if(fluxo.y - tamanho < MARGEM){ novaPagina(); }
-          fluxo.pagina.drawText(texto, {
-            x: MARGEM + (opcoes.indent || 0),
-            y: fluxo.y,
-            size: tamanho,
-            font: fonteUsada,
-            color: PDFLib.rgb(0.1, 0.1, 0.1)
-          });
-          fluxo.y -= (tamanho + (opcoes.espaco != null ? opcoes.espaco : 6));
-        }
-
-        function espacar(pt){
-          fluxo.y -= pt;
-          if(fluxo.y < MARGEM){ novaPagina(); }
-        }
-
-        function quebrarTexto(texto, tamanho, fonteUsada){
-          var palavras = String(texto).split(" ");
-          var linhas = [];
-          var atual = "";
-          palavras.forEach(function(palavra){
-            var teste = atual ? atual + " " + palavra : palavra;
-            if(fonteUsada.widthOfTextAtSize(teste, tamanho) > LARGURA_UTIL && atual){
-              linhas.push(atual);
-              atual = palavra;
-            } else {
-              atual = teste;
-            }
-          });
-          if(atual) linhas.push(atual);
-          return linhas;
-        }
-
-        function paragrafo(texto, opcoes){
-          opcoes = opcoes || {};
-          var tamanho = opcoes.tamanho || 10;
-          var fonteUsada = opcoes.negrito ? fonteNegrito : fonte;
-          var linhas = quebrarTexto(texto, tamanho, fonteUsada);
-          linhas.forEach(function(l, i){
-            // Entre linhas do mesmo parágrafo o espaçamento é apertado; o
-            // `espaco` pedido vale só depois da última, senão um parágrafo
-            // quebrado em duas linhas fica com um vão no meio.
-            var ultima = i === linhas.length - 1;
-            var opcoesLinha = {
-              tamanho: tamanho,
-              negrito: opcoes.negrito,
-              mono: opcoes.mono,
-              indent: opcoes.indent,
-              espaco: ultima ? opcoes.espaco : 2
-            };
-            linha(l, opcoesLinha);
-          });
-        }
-
-        linha("Submissão de software ao NIT/CEFET-MG", { negrito: true, tamanho: 16, espaco: 4 });
-        linha("Dados estruturados para instrução do processo no SIPAC", { tamanho: 10, espaco: 18 });
-
-        linha("Identificação", { negrito: true, tamanho: 12, espaco: 8 });
-        [
-          ["Título", payload.software.titulo],
-          ["Sigla", payload.software.sigla || "—"],
-          ["TRL", String(payload.software.trl || "—")],
-          ["Origem", payload.software.origem.tipo + (payload.software.origem.vinculo ? " — " + payload.software.origem.vinculo : "")],
-          ["Linguagens", (payload.software.linguagens || []).join(", ") || "—"],
-          ["Área de aplicação", (payload.software.area_aplicacao || []).join("; ") || "—"],
-          ["Tipo de programa", (payload.software.tipo_programa || []).join("; ") || "—"],
-          ["Release", payload.release.tag],
-          ["SHA-256", payload.release.sha256]
-        ].forEach(function(par){
-          linha(par[0] + ":", { negrito: true, tamanho: 10, espaco: 2 });
-          paragrafo(par[1], { tamanho: 10, indent: 12, espaco: 8 });
-        });
-
-        paragrafo("Descrição: " + payload.software.descricao_curta, { tamanho: 10, espaco: 14 });
-
-        if(payload.software.possui_colaborador_externo){
-          paragrafo(
-            "Observação: esta submissão possui colaborador sem vínculo com o CEFET-MG — pode configurar " +
-            "cotitularidade, sujeita a revisão do NIT antes do depósito.",
-            { tamanho: 9, espaco: 14 }
-          );
-        }
-
-        espacar(6);
-        linha("Autores", { negrito: true, tamanho: 12, espaco: 8 });
-
-        payload.autores.forEach(function(autor, i){
-          linha("Autor " + (i + 1) + " — " + autor.nome, { negrito: true, tamanho: 10, espaco: 4 });
-          [
-            ["Vínculo", autor.vinculo],
-            ["CPF", autor.cpf],
-            ["RG", autor.rg + (autor.orgao_expedidor ? " (" + autor.orgao_expedidor + ")" : "")],
-            ["Nacionalidade", autor.nacionalidade || "—"],
-            ["Endereço", autor.endereco],
-            ["E-mail institucional", autor.email_institucional || "—"],
-            ["E-mail alternativo", autor.email_alternativo || "—"],
-            ["Telefone", autor.telefone || "—"],
-            ["Instituição de origem", autor.instituicao || "—"],
-            ["% de contribuição", String(autor.percentual_contribuicao) + "%"]
-          ].forEach(function(par){
-            paragrafo(par[0] + ": " + par[1], { tamanho: 9, indent: 10, espaco: 3 });
-          });
-          espacar(8);
-        });
-
-        var jsonTexto = JSON.stringify(payload);
-
-        return sha256Hex(jsonTexto).then(function(shaTexto){
-          novaPagina();
-          linha("Anexo A — dados estruturados", { negrito: true, tamanho: 12, espaco: 6 });
-          paragrafo(
-            "Bloco de texto abaixo é a fonte legível por máquina desta submissão. Sobrevive a reimpressão " +
-            "ou re-salvamento do PDF, quando o anexo embutido eventualmente não sobreviver.",
-            { tamanho: 8, espaco: 10 }
-          );
-          linha("-----BEGIN SUBMISSAO-JSON-----", { mono: true, tamanho: 7, espaco: 3 });
-          dividirEmLinhas(jsonTexto, 90).forEach(function(l){
-            linha(l, { mono: true, tamanho: 7, espaco: 2 });
-          });
-          linha("-----END SUBMISSAO-JSON-----", { mono: true, tamanho: 7, espaco: 3 });
-          linha("sha256=" + shaTexto, { mono: true, tamanho: 7, espaco: 3 });
-
-          var bytesJson = new TextEncoder().encode(jsonTexto);
-          return pdfDoc.attach(bytesJson, "submissao.json", {
-            mimeType: "application/json",
-            description: "Dados estruturados da submissão (título, autores, release)"
-          });
-        }).then(function(){
-          return pdfDoc.save();
-        });
-      });
-    });
-  }
-
-  $("btn-gerar-pdf").addEventListener("click", function(){
-    var payload = renderOutput();
-    var pendentes = validate(payload);
-    if(pendentes.length > 0){
-      mostrarStatusPdf("Corrija os itens pendentes antes de gerar o PDF.", "error");
-      return;
-    }
-    mostrarStatusPdf("Gerando PDF...", "info");
-    gerarPdf(payload).then(function(bytes){
-      baixarArquivo(bytes, nomeArquivoPdf(payload), "application/pdf");
-      formularioSujo = false;
-      mostrarStatusPdf("PDF gerado. Anexe ao processo no SIPAC e apague o arquivo do seu computador depois.", "ok");
-    }).catch(function(erro){
-      mostrarStatusPdf("Erro ao gerar o PDF: " + erro.message, "error");
-    });
-  });
-
-  // ---- rascunho local (baixar / carregar) ---------------------------------
-
-  $("btn-baixar-rascunho").addEventListener("click", function(){
-    var payload = buildPayload();
-    var texto = JSON.stringify(payload, null, 2);
-    baixarArquivo(new Blob([texto], { type: "application/json" }), "rascunho-submissao.json", "application/json");
-    formularioSujo = false;
-  });
-
-  function carregarRascunho(payload){
-    var sw = payload.software || {};
-    $("titulo").value = sw.titulo || "";
-    $("sigla").value = sw.sigla || "";
-    $("descricao_curta").value = sw.descricao_curta || "";
-    $("descricao_curta").dispatchEvent(new Event("input"));
-    $("trl").value = sw.trl ? String(sw.trl) : "";
-    $("origem_tipo").value = (sw.origem && sw.origem.tipo) || "";
-    $("origem_vinculo").value = (sw.origem && sw.origem.vinculo) || "";
-
-    replaceTagValues("linguagens", sw.linguagens);
-    replaceTagValues("area_aplicacao", sw.area_aplicacao);
-    replaceTagValues("tipo_programa", sw.tipo_programa);
-    replaceTagValues("palavras_chave", sw.palavras_chave);
-
-    $("possui_colaborador_externo").checked = !!sw.possui_colaborador_externo;
-    $("corresponsavel_efetivo").value = sw.corresponsavel_efetivo || "";
-    $("contato_disponivel").checked = !!sw.contato_disponivel;
-    var interesseExiste = !!(sw.interesse_externo && sw.interesse_externo.existe);
-    $("interesse_existe").checked = interesseExiste;
-    $("interesse-descricao-wrap").hidden = !interesseExiste;
-    $("interesse_descricao").value = (sw.interesse_externo && sw.interesse_externo.descricao) || "";
-    $("uso_institucional").checked = !!sw.uso_institucional;
-    $("licenca_pretendida").value = sw.licenca_pretendida || "";
-    $("possui_dependencias_terceiros").checked = !!sw.possui_dependencias_terceiros;
-
-    state.autores = (Array.isArray(payload.autores) && payload.autores.length)
-      ? payload.autores.map(function(a){
-          var completo = autorVazio();
-          Object.keys(a).forEach(function(k){ completo[k] = a[k]; });
-          return completo;
-        })
-      : [autorVazio()];
-    renderAutores();
-
-    $("release-tag").value = (payload.release && payload.release.tag) || "";
-    $("release-sha256").value = (payload.release && payload.release.sha256) || "";
-
-    formularioSujo = false;
-    renderOutput();
-  }
-
-  $("input-carregar-rascunho").addEventListener("change", function(e){
-    var arquivo = e.target.files[0];
-    var feedback = $("rascunho-feedback");
-    if(!arquivo) return;
-    var leitor = new FileReader();
-    leitor.onload = function(){
-      try{
-        var payload = JSON.parse(leitor.result);
-        carregarRascunho(payload);
-        feedback.className = "import-feedback ok";
-        feedback.textContent = "Rascunho carregado — revise os campos abaixo.";
-        $("import-card-rascunho").open = false;
-        window.scrollTo({ top: document.querySelector("main").offsetTop - 12, behavior: "smooth" });
-      } catch(erro){
-        feedback.className = "import-feedback error";
-        feedback.textContent = "Não foi possível ler o rascunho (" + erro.message + ").";
-      }
-    };
-    leitor.readAsText(arquivo);
-    e.target.value = "";
-  });
-
-  // ---- importar metadata.json existente (dados públicos) -----------------
-
-  function carregarDeMetadata(data){
-    $("titulo").value = data.titulo || "";
-    $("descricao_curta").value = data.descricao_curta || "";
-    $("descricao_curta").dispatchEvent(new Event("input"));
-    $("trl").value = data.trl ? String(data.trl) : "";
-    $("origem_tipo").value = (data.origem && data.origem.tipo) || "";
-    $("origem_vinculo").value = (data.origem && data.origem.vinculo) || "";
-
-    if(Array.isArray(data.autores_publicos) && data.autores_publicos.length){
-      state.autores = data.autores_publicos.map(function(a){
-        var completo = autorVazio();
-        completo.nome = a.nome || "";
-        completo.vinculo = a.vinculo || "";
-        return completo;
-      });
-      renderAutores();
-    }
-
-    renderOutput();
-  }
-
-  $("btn-import").addEventListener("click", function(){
-    var raw = $("import-textarea").value;
-    var feedback = $("import-feedback");
-    if(!raw.trim()){
-      feedback.className = "import-feedback error";
-      feedback.textContent = "Cole o conteúdo do metadata.json antes de carregar.";
-      return;
-    }
-    var data;
-    try{
-      data = JSON.parse(raw);
-    } catch(err){
-      feedback.className = "import-feedback error";
-      feedback.textContent = "Isso não parece um JSON válido (" + err.message + "). Confira se copiou o arquivo inteiro.";
-      return;
-    }
-    carregarDeMetadata(data);
-    feedback.className = "import-feedback ok";
-    feedback.textContent = "Carregado — título, TRL, origem e autores pré-preenchidos. Complete o restante abaixo.";
-    $("import-card-metadata").open = false;
-    window.scrollTo({ top: document.querySelector("main").offsetTop - 12, behavior: "smooth" });
-  });
-
-  renderOutput();
-})();
-</script>
+<script src="dados.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
