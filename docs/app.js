@@ -33,6 +33,7 @@
 
   var STEPS = [
     { id: "identificacao", titulo: "Identificação" },
+    { id: "maturidade", titulo: "Maturidade (TRL)", visibleIf: function(){ return trlExigeMaturidade(); } },
     { id: "instituicoes", titulo: "Instituições" },
     { id: "autores", titulo: "Autores" },
     { id: "classificacao", titulo: "Classificação" },
@@ -41,6 +42,11 @@
     { id: "declaracoes", titulo: "Declarações" },
     { id: "revisao", titulo: "Revisão" }
   ];
+
+  function trlExigeMaturidade(){
+    var v = parseInt($("trl").value, 10);
+    return !isNaN(v) && v >= TRL_MINIMO_MATURIDADE;
+  }
 
   // ================= helpers dom =================
 
@@ -121,6 +127,7 @@
   function addTagValue(key, value){
     value = (value || "").trim();
     if(!value || state[key].indexOf(value) !== -1) return false;
+    if(key === "palavras_chave" && state[key].length >= MAX_PALAVRAS_CHAVE) return false;
     state[key].push(value);
     renderTags(key);
     renderTudo();
@@ -176,8 +183,6 @@
   }
 
   // ================= autocomplete genérico =================
-
-  var MAX_RESULTS = 40;
 
   function attachAutocomplete(input, listbox, items, opts){
     opts = opts || {};
@@ -352,6 +357,8 @@
     card.querySelector(".bloco-independente").hidden = autor.instituicao_tipo !== "independente";
     card.querySelector(".email-alt-req").textContent =
       (autor.instituicao_tipo === "cefetmg" && autor.tipo_vinculo === "temporario") ? "obrigatório" : "";
+    card.querySelector(".email-dominio-hint").hidden =
+      !(autor.instituicao_tipo === "cefetmg" && (autor.tipo_vinculo === "servidor" || autor.tipo_vinculo === "temporario"));
     if(autor.instituicao_tipo === "parceira"){
       atualizarPreviewEnderecoParceira(card, autor);
     }
@@ -430,6 +437,7 @@
       atuais[inp.getAttribute("data-idx")] = inp.value;
     });
     container.innerHTML = "";
+    renderJustificativasParceiras();
     state.instituicoes_parceiras.forEach(function(inst, i){
       var row = document.createElement("div");
       row.className = "cotitularidade-row";
@@ -455,6 +463,51 @@
       row.appendChild(f1);
       row.appendChild(f2);
       container.appendChild(row);
+    });
+  }
+
+  function renderJustificativasParceiras(){
+    var container = $("cotitularidade-justificativas-list");
+    if(!container) return;
+    var atuais = {};
+    container.querySelectorAll("[data-just-idx]").forEach(function(ta){
+      atuais[ta.getAttribute("data-just-idx")] = ta.value;
+    });
+    container.innerHTML = "";
+    state.instituicoes_parceiras.forEach(function(inst, i){
+      var campo = document.createElement("div");
+      campo.className = "field";
+
+      var id = "cotitularidade-just-" + i;
+      var label = document.createElement("label");
+      label.setAttribute("for", id);
+      label.textContent = inst.razao_social || ("Instituição parceira " + (i + 1));
+
+      var ta = document.createElement("textarea");
+      ta.id = id;
+      ta.className = "textarea-paragrafo";
+      ta.setAttribute("data-just-idx", String(i));
+      ta.value = atuais.hasOwnProperty(String(i)) ? atuais[String(i)] : "";
+
+      var contador = document.createElement("p");
+      contador.className = "char-count";
+      function atualizarContador(){
+        var n = ta.value.length;
+        contador.textContent = n + " caracteres (mínimo " + MIN_CARACTERES_PARAGRAFO + ")";
+        contador.classList.toggle("short", n < MIN_CARACTERES_PARAGRAFO);
+      }
+      ta.addEventListener("input", atualizarContador);
+      atualizarContador();
+
+      var erro = document.createElement("p");
+      erro.className = "field-error";
+      erro.hidden = true;
+
+      campo.appendChild(label);
+      campo.appendChild(ta);
+      campo.appendChild(contador);
+      campo.appendChild(erro);
+      container.appendChild(campo);
     });
   }
 
@@ -607,6 +660,29 @@
     if(sw.descricao_curta.length < 120) out.push({ step: "identificacao", el: $("descricao_curta"), message: "Descrição do software precisa de pelo menos 120 caracteres — escreva um parágrafo, não só uma frase" });
     if(!sw.trl) out.push({ step: "identificacao", el: $("trl"), message: "Selecione o TRL" });
     if(!sw.origem.tipo) out.push({ step: "identificacao", el: $("origem_tipo"), message: "Selecione a origem do software" });
+    if(!sw.data_criacao) out.push({ step: "identificacao", el: $("data_criacao"), message: "Informe a data de criação" });
+    if(sw.data_criacao && sw.data_publicacao && sw.data_publicacao <= sw.data_criacao){
+      out.push({ step: "identificacao", el: $("data_publicacao"), message: "Data de publicação precisa ser posterior à data de criação" });
+    }
+    return out;
+  }
+
+  function validateMaturidade(payload){
+    var out = [];
+    var m = payload.maturidade;
+    if(!m) return out;
+    if(m.justificativa.length < MIN_CARACTERES_PARAGRAFO){
+      out.push({ step: "maturidade", el: $("trl_justificativa"), message: "Justificativa do TRL precisa de pelo menos " + MIN_CARACTERES_PARAGRAFO + " caracteres" });
+    }
+    if(!m.empresa_interessada.razao_social){
+      out.push({ step: "maturidade", el: $("interessada_razao_social"), message: "Informe a razão social da empresa ou instituição interessada" });
+    }
+    if(!cnpjValido(m.empresa_interessada.cnpj)){
+      out.push({ step: "maturidade", el: $("interessada_cnpj"), message: "CNPJ da empresa ou instituição interessada ausente ou inválido" });
+    }
+    if(!m.carta_interesse_sera_anexada){
+      out.push({ step: "maturidade", el: $("decl_carta_interesse"), message: "Confirme que a carta de manifestação de interesse será anexada ao processo" });
+    }
     return out;
   }
 
@@ -637,6 +713,7 @@
       out.push({ step: "autores", el: null, message: "Adicione ao menos um autor" });
     }
     var soma = 0, temPercentual = false;
+    var haServidor = state.autores.some(function(r){ return r.instituicao_tipo === "cefetmg" && r.tipo_vinculo === "servidor"; });
     payload.autores.forEach(function(a, i){
       var raw = state.autores[i];
       var card = container.children[i];
@@ -644,6 +721,7 @@
       var rotulo = "Autor " + (i + 1) + (a.nome ? " (" + a.nome + ")" : "");
 
       if(!a.nome || a.nome.length < 3) out.push({ step: "autores", el: campo("nome"), message: rotulo + ": nome precisa de pelo menos 3 caracteres" });
+      if(!a.nacionalidade) out.push({ step: "autores", el: campo("nacionalidade"), message: rotulo + ": informe a nacionalidade" });
       if(!cpfValido(a.cpf)) out.push({ step: "autores", el: campo("cpf"), message: rotulo + ": CPF ausente ou inválido" });
 
       if(!raw.instituicao_tipo){
@@ -654,6 +732,10 @@
         if(raw.tipo_vinculo === "temporario" && !raw.email_alternativo){
           out.push({ step: "autores", el: campo("email_alternativo"), message: rotulo + ": e-mail alternativo obrigatório para vínculo temporário" });
         }
+        if((raw.tipo_vinculo === "servidor" || raw.tipo_vinculo === "temporario") && a.email &&
+           a.email.toLowerCase().split("@")[1] !== EMAIL_DOMINIO_CEFETMG){
+          out.push({ step: "autores", el: campo("email"), message: rotulo + ": e-mail principal precisa ser institucional (@" + EMAIL_DOMINIO_CEFETMG + ") para vínculo servidor ou temporário" });
+        }
       } else if(raw.instituicao_tipo === "parceira"){
         if(raw.instituicao_parceira_idx === "" || raw.instituicao_parceira_idx == null){
           out.push({ step: "autores", el: campo("instituicao_parceira_idx"), message: rotulo + ": selecione a instituição parceira" });
@@ -662,7 +744,16 @@
         if(!raw.endereco_independente) out.push({ step: "autores", el: campo("endereco_independente"), message: rotulo + ": endereço obrigatório para inventor independente" });
       }
 
+      if(i === 0 && raw.instituicao_tipo){
+        if(raw.instituicao_tipo !== "cefetmg"){
+          out.push({ step: "autores", el: campo("instituicao_tipo"), message: "O autor correspondente precisa ter vínculo com o CEFET-MG" });
+        } else if(haServidor && raw.tipo_vinculo && raw.tipo_vinculo !== "servidor"){
+          out.push({ step: "autores", el: campo("tipo_vinculo"), message: "Há servidor entre os autores — o autor correspondente precisa ser o servidor" });
+        }
+      }
+
       if(!a.email) out.push({ step: "autores", el: campo("email"), message: rotulo + ": e-mail obrigatório" });
+      if(!a.qualificacao_profissional) out.push({ step: "autores", el: campo("qualificacao_profissional"), message: rotulo + ": informe a qualificação profissional" });
 
       if(a.percentual_contribuicao === "" || isNaN(a.percentual_contribuicao)){
         out.push({ step: "autores", el: campo("percentual_contribuicao"), message: rotulo + ": informe o percentual de contribuição" });
@@ -680,16 +771,25 @@
   function validateClassificacao(payload){
     var out = [];
     if(payload.software.linguagens.length < 1) out.push({ step: "classificacao", el: $("linguagens-custom"), message: "Selecione ao menos uma linguagem" });
+    if(payload.software.area_aplicacao.length < 1) out.push({ step: "classificacao", el: $("area-search"), message: "Selecione ao menos uma área de aplicação" });
     if(payload.software.tipo_programa.length < 1) out.push({ step: "classificacao", el: $("tipo-search"), message: "Selecione ao menos um tipo de programa" });
+    if(payload.software.palavras_chave.length < MIN_PALAVRAS_CHAVE){
+      out.push({ step: "classificacao", el: $("palavras-custom"), message: "Adicione ao menos " + MIN_PALAVRAS_CHAVE + " palavras-chave" });
+    } else if(payload.software.palavras_chave.length > MAX_PALAVRAS_CHAVE){
+      out.push({ step: "classificacao", el: $("palavras-custom"), message: "No máximo " + MAX_PALAVRAS_CHAVE + " palavras-chave (estão " + payload.software.palavras_chave.length + ")" });
+    }
     return out;
   }
 
   function validateParceria(payload){
     var out = [];
     if(!payload.parceria) return out;
-    if(payload.parceria.resumo_fases.length < 120){
-      out.push({ step: "parceria", el: $("resumo_fases"), message: "Justificativa de titularidade precisa de pelo menos 120 caracteres" });
-    }
+    payload.parceria.cotitularidade.slice(1).forEach(function(c, i){
+      if(c.justificativa.length < MIN_CARACTERES_PARAGRAFO){
+        out.push({ step: "parceria", el: document.querySelector('[data-just-idx="' + i + '"]'),
+          message: (c.instituicao || "Instituição parceira " + (i + 1)) + ": descreva a contribuição em pelo menos " + MIN_CARACTERES_PARAGRAFO + " caracteres" });
+      }
+    });
     var cot = payload.parceria.cotitularidade;
     var incompleto = cot.some(function(c){ return c.percentual === "" || isNaN(c.percentual); });
     if(incompleto){
@@ -706,7 +806,7 @@
   function validateRelease(payload){
     var out = [];
     if(!payload.release.tag) out.push({ step: "artefato", el: $("release-tag"), message: "Informe o nome da release" });
-    if(!/^[0-9a-f]{64}$/.test(payload.release.sha256)) out.push({ step: "artefato", el: $("release-sha256"), message: "SHA-256 precisa ter 64 caracteres hexadecimais" });
+    if(!/^[0-9a-f]{128}$/.test(payload.release.sha512)) out.push({ step: "artefato", el: $("release-sha512"), message: "SHA-512 precisa ter 128 caracteres hexadecimais" });
     if(!$("release-repo-sufixo").value.trim()) out.push({ step: "artefato", el: $("release-repo-sufixo"), message: "Informe o nome do repositório no GitHub" });
     return out;
   }
@@ -717,6 +817,11 @@
     if(!d.responsabilidade_acompanhamento) out.push({ step: "declaracoes", el: $("decl_acompanhamento"), message: "Confirme a declaração de responsabilidade pelo acompanhamento do processo" });
     if(!d.responsabilidade_busca_anterioridade) out.push({ step: "declaracoes", el: $("decl_busca_anterioridade"), message: "Confirme a declaração sobre a Busca de Anterioridade" });
     if(!d.ciencia_custos_inpi) out.push({ step: "declaracoes", el: $("decl_custos_inpi"), message: "Confirme a ciência dos custos do INPI" });
+    if(!d.guarda_hash_50_anos) out.push({ step: "declaracoes", el: $("decl_guarda_hash"), message: "Confirme a declaração de guarda do arquivo pelo prazo de 50 anos" });
+    if(!d.guarda_copia_autores) out.push({ step: "declaracoes", el: $("decl_guarda_copia"), message: "Confirme a declaração de guarda de cópia do software pelos autores" });
+    if(payload.derivacao.autorizada && !d.guarda_autorizacao_derivacao){
+      out.push({ step: "declaracoes", el: $("decl_guarda_derivacao"), message: "Confirme a declaração de guarda da autorização de derivação" });
+    }
     if(!d.veracidade_informacoes) out.push({ step: "declaracoes", el: $("decl_veracidade"), message: "Confirme a declaração de veracidade das informações" });
     return out;
   }
@@ -724,6 +829,7 @@
   function validateAll(payload){
     var out = [];
     out = out.concat(validateIdentificacao(payload));
+    out = out.concat(validateMaturidade(payload));
     out = out.concat(validateInstituicoes(payload));
     out = out.concat(validateAutores(payload));
     out = out.concat(validateClassificacao(payload));
@@ -815,11 +921,14 @@
         responsabilidade_acompanhamento: $("decl_acompanhamento").checked,
         responsabilidade_busca_anterioridade: $("decl_busca_anterioridade").checked,
         ciencia_custos_inpi: $("decl_custos_inpi").checked,
+        guarda_hash_50_anos: $("decl_guarda_hash").checked,
+        guarda_copia_autores: $("decl_guarda_copia").checked,
+        guarda_autorizacao_derivacao: $("decl_guarda_derivacao").checked,
         veracidade_informacoes: $("decl_veracidade").checked
       },
       release: {
         tag: $("release-tag").value.trim(),
-        sha256: $("release-sha256").value.trim().toLowerCase(),
+        sha512: $("release-sha512").value.trim().toLowerCase(),
         repositorio: GITHUB_ORG + "/" + $("release-repo-sufixo").value.trim()
       },
       gerado_em: new Date().toISOString().slice(0, 10),
@@ -835,14 +944,24 @@
       document.querySelectorAll("#cotitularidade-parceiras-list [data-idx]").forEach(function(inp){
         var idx = parseInt(inp.getAttribute("data-idx"), 10);
         var inst = instituicoesValidas[idx];
+        var just = document.querySelector('[data-just-idx="' + idx + '"]');
         cotitularidade.push({
           instituicao: inst ? inst.razao_social : "",
-          percentual: inp.value === "" ? "" : parseFloat(inp.value)
+          percentual: inp.value === "" ? "" : parseFloat(inp.value),
+          justificativa: just ? just.value.trim() : ""
         });
       });
-      payload.parceria = {
-        resumo_fases: $("resumo_fases").value.trim(),
-        cotitularidade: cotitularidade
+      payload.parceria = { cotitularidade: cotitularidade };
+    }
+
+    if(trlExigeMaturidade()){
+      payload.maturidade = {
+        justificativa: $("trl_justificativa").value.trim(),
+        empresa_interessada: {
+          razao_social: $("interessada_razao_social").value.trim(),
+          cnpj: $("interessada_cnpj").value.trim()
+        },
+        carta_interesse_sera_anexada: $("decl_carta_interesse").checked
       };
     }
 
@@ -1083,6 +1202,14 @@
           var linhas = [];
           var atual = "";
           palavras.forEach(function(palavra){
+            // Palavra sem espaço mais larga que a coluna (ex.: hash de 128 hex): quebra por caractere.
+            while(fonteUsada.widthOfTextAtSize(palavra, tamanho) > largura && palavra.length > 1){
+              var corte = palavra.length - 1;
+              while(corte > 1 && fonteUsada.widthOfTextAtSize(palavra.slice(0, corte), tamanho) > largura) corte--;
+              if(atual){ linhas.push(atual); atual = ""; }
+              linhas.push(palavra.slice(0, corte));
+              palavra = palavra.slice(corte);
+            }
             var teste = atual ? atual + " " + palavra : palavra;
             if(fonteUsada.widthOfTextAtSize(teste, tamanho) > largura && atual){
               linhas.push(atual);
@@ -1191,6 +1318,12 @@
         linhaCampo("Data de criação", payload.software.data_criacao);
         linhaCampo("Data de publicação", payload.software.data_publicacao);
         paragrafoBloco("Descrição do software:", payload.software.descricao_curta);
+        if(payload.maturidade){
+          paragrafoBloco("Justificativa do TRL " + payload.software.trl + " (comprovantes anexados ao processo no SIPAC):", payload.maturidade.justificativa);
+          linhaCampo("Empresa/instituição interessada", payload.maturidade.empresa_interessada.razao_social);
+          linhaCampo("CNPJ", payload.maturidade.empresa_interessada.cnpj);
+          linhaCheckbox("Declaro que a carta de manifestação de interesse será anexada ao processo no SIPAC.", payload.maturidade.carta_interesse_sera_anexada);
+        }
         if(payload.software.informe_projeto){
           paragrafoBloco("Projeto de pesquisa, extensão ou outros:", payload.software.informe_projeto);
         }
@@ -1204,10 +1337,12 @@
           });
 
           if(payload.parceria){
-            tituloSecao("Parceria — fases e cotitularidade");
-            paragrafoBloco("Resumo das fases de pesquisa:", payload.parceria.resumo_fases);
+            tituloSecao("Parceria — cotitularidade e contribuições");
             payload.parceria.cotitularidade.forEach(function(c){
               linhaCampo(c.instituicao || "—", (c.percentual === "" || c.percentual == null ? "—" : c.percentual + "%"), { indent: 10 });
+            });
+            payload.parceria.cotitularidade.slice(1).forEach(function(c){
+              paragrafoBloco("Contribuição de " + (c.instituicao || "—") + ":", c.justificativa);
             });
           }
         }
@@ -1254,7 +1389,7 @@
         tituloSecao("Programa a Proteger");
         linhaCampo("Repositório", payload.release.repositorio);
         linhaCampo("Release", payload.release.tag);
-        linhaCampo("SHA-256", payload.release.sha256, { tamanho: 8.5 });
+        linhaCampo("SHA-512", payload.release.sha512, { tamanho: 6.5 });
 
         tituloSecao("Derivação Autorizada");
         linhaCampo("Derivação autorizada?", payload.derivacao.autorizada ? "Sim" : "Não");
@@ -1262,6 +1397,7 @@
           linhaCampo("Programa original — título", payload.derivacao.titulo_original, { indent: 10 });
           linhaCampo("Programa original — linguagem", payload.derivacao.linguagem_original, { indent: 10 });
           linhaCampo("Programa original — nº de registro no INPI", payload.derivacao.numero_registro_inpi_original, { indent: 10 });
+          linhaCheckbox("Declaro que os autores do software são responsáveis pela guarda do documento que autoriza esta derivação.", payload.declaracoes.guarda_autorizacao_derivacao);
         }
 
         tituloSecao("Comercialização da Tecnologia");
@@ -1274,7 +1410,13 @@
         linhaCheckbox("Declaro que assumo inteira responsabilidade pelo acompanhamento das informações do processo de pedido de registro de programa de computador.", payload.declaracoes.responsabilidade_acompanhamento);
         linhaCheckbox("Declaro que assumo inteira responsabilidade pela realização da Busca de Anterioridade nos casos em que esta se fizer necessária.", payload.declaracoes.responsabilidade_busca_anterioridade);
         linhaCheckbox("Declaro ciência dos custos de abertura do processo junto ao INPI e de cada ato do processo do pedido de programa de computador.", payload.declaracoes.ciencia_custos_inpi);
+        linhaCheckbox("Declaro que guardarei, de forma segura e separada, o arquivo compactado usado para gerar o hash do código-fonte, pelo prazo de vigência da proteção legal (50 anos, art. 2º, §2º da Lei nº 9.609/98).", payload.declaracoes.guarda_hash_50_anos);
+        linhaCheckbox("Declaro que cada autor manterá a guarda de uma cópia do software a ser protegido, pelo prazo de vigência da proteção legal (50 anos, art. 2º, §2º da Lei nº 9.609/98), para eventual necessidade de comprovação ou modificação futura.", payload.declaracoes.guarda_copia_autores);
         linhaCheckbox("Declaro que as informações relativas aos dados contidos neste formulário são verdadeiras e autênticas (fiéis à verdade e condizentes com a realidade dos fatos à época).", payload.declaracoes.veracidade_informacoes);
+        var declarante = (payload.autores && payload.autores[0]) || {};
+        linhaCampo("Declarante", (declarante.nome || "—") + " — autor correspondente, requerente do registro");
+        linhaCampo("CPF do declarante", declarante.cpf);
+        linhaCampo("Data da declaração", payload.gerado_em);
 
         var jsonTexto = JSON.stringify(payload);
 
@@ -1391,6 +1533,9 @@
     $("decl_acompanhamento").checked = !!d.responsabilidade_acompanhamento;
     $("decl_busca_anterioridade").checked = !!d.responsabilidade_busca_anterioridade;
     $("decl_custos_inpi").checked = !!d.ciencia_custos_inpi;
+    $("decl_guarda_hash").checked = !!d.guarda_hash_50_anos;
+    $("decl_guarda_copia").checked = !!d.guarda_copia_autores;
+    $("decl_guarda_derivacao").checked = !!d.guarda_autorizacao_derivacao;
     $("decl_veracidade").checked = !!d.veracidade_informacoes;
 
     document.querySelectorAll("[data-decl-card]").forEach(function(card){
@@ -1399,24 +1544,33 @@
     });
 
     $("release-tag").value = (payload.release && payload.release.tag) || "";
-    $("release-sha256").value = (payload.release && payload.release.sha256) || "";
+    $("release-sha512").value = (payload.release && payload.release.sha512) || "";
     var repo = (payload.release && payload.release.repositorio) || "";
     var prefixo = GITHUB_ORG + "/";
     $("release-repo-sufixo").value = repo.indexOf(prefixo) === 0 ? repo.slice(prefixo.length) : repo;
 
+    var mat = payload.maturidade || {};
+    var emp = mat.empresa_interessada || {};
+    $("trl_justificativa").value = mat.justificativa || "";
+    $("trl_justificativa").dispatchEvent(new Event("input"));
+    $("interessada_razao_social").value = emp.razao_social || "";
+    $("interessada_cnpj").value = emp.cnpj || "";
+    $("decl_carta_interesse").checked = !!mat.carta_interesse_sera_anexada;
+    $("decl_carta_interesse").dispatchEvent(new Event("change"));
+
     renderCotitularidade();
     if(payload.parceria){
-      $("resumo_fases").value = payload.parceria.resumo_fases || "";
       if(Array.isArray(payload.parceria.cotitularidade)){
         var cefetEntry = payload.parceria.cotitularidade[0];
         if(cefetEntry) $("cotitularidade-cefetmg").value = cefetEntry.percentual != null ? String(cefetEntry.percentual) : "";
         payload.parceria.cotitularidade.slice(1).forEach(function(c, i){
           var input = document.querySelector('#cotitularidade-parceiras-list [data-idx="' + i + '"]');
           if(input) input.value = c.percentual != null ? String(c.percentual) : "";
+          var ta = document.querySelector('#cotitularidade-justificativas-list [data-just-idx="' + i + '"]');
+          if(ta){ ta.value = c.justificativa || ""; ta.dispatchEvent(new Event("input")); }
         });
       }
     } else {
-      $("resumo_fases").value = "";
       $("cotitularidade-cefetmg").value = "";
     }
 
@@ -1506,6 +1660,13 @@
       native.dispatchEvent(new Event("change", { bubbles: true }));
     });
     native.addEventListener("change", sync);
+  });
+
+  $("trl_justificativa").addEventListener("input", function(){
+    var n = $("trl_justificativa").value.length;
+    var counter = $("trl-justificativa-count");
+    counter.textContent = n + " caracteres (mínimo " + MIN_CARACTERES_PARAGRAFO + ")";
+    counter.classList.toggle("short", n < MIN_CARACTERES_PARAGRAFO);
   });
 
   $("descricao_curta").addEventListener("input", function(){

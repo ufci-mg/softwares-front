@@ -74,7 +74,7 @@
             <select id="origem_tipo" required>
               <option value="">Selecione</option>
               <option value="pesquisa">Pesquisa</option>
-              <option value="disciplina">Disciplina</option>
+              <option value="ensino">Ensino</option>
               <option value="extensao">Extensão</option>
               <option value="projeto_fomento">Projeto com fomento</option>
               <option value="outro">Outro</option>
@@ -97,15 +97,65 @@
 
         <div class="row2">
           <div class="field">
-            <label for="data_criacao">Data de criação</label>
-            <input type="date" id="data_criacao">
-            <p class="field-hint">Data em que foi finalizado — serve como marco temporal de autoria.</p>
+            <label for="data_criacao">Data de criação <span class="req">*</span></label>
+            <input type="date" id="data_criacao" required>
+            <p class="field-hint">Data em que o programa tornou-se capaz de atender plenamente as funções para as quais foi concebido, ou seja, quando ficou pronto para uso. Serve como marco temporal de autoria.</p>
             <p class="field-error" hidden></p>
           </div>
           <div class="field">
             <label for="data_publicacao">Data de publicação</label>
             <input type="date" id="data_publicacao">
-            <p class="field-hint">Data em que foi publicado, disponibilizado ou comercializado (com ou sem fim lucrativo).</p>
+            <p class="field-hint">Opcional. Data em que o programa tornou-se acessível ao público — se ainda não foi divulgado, deixe em branco. Quando informada, precisa ser posterior à data de criação. Questões de comercialização são tratadas à parte, na declaração de Comercialização da Tecnologia.</p>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="wizard-step" data-step="maturidade">
+      <fieldset>
+        <legend>Maturidade (TRL)</legend>
+        
+        <div class="info-box">
+          <span class="info-box-icon" aria-hidden="true">!</span>
+          <div class="info-box-body">
+            <strong class="info-box-title">TRL 6 ou superior exige justificativa fundamentada e empresa interessada.</strong>
+            Softwares neste nível já foram demonstrados em ambiente relevante ou operacional. Por isso o registro
+            exige a justificativa do nível, com comprovantes, e a manifestação de interesse de uma empresa ou
+            instituição que dê continuidade ao projeto e/ou mantenha parceria em andamento.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="trl_justificativa">Justificativa do nível de TRL <span class="req">*</span></label>
+          <p class="field-hint">Explique por que o software está no nível escolhido, apontando os comprovantes que sustentam a afirmação: relatórios de testes ou validação, demonstrações em ambiente real, pilotos, usuários ou clientes atendidos, publicações. Anexe esses comprovantes ao processo no SIPAC.</p>
+          <textarea id="trl_justificativa" class="textarea-longa" minlength="120"></textarea>
+          <p class="char-count" id="trl-justificativa-count">0 caracteres (mínimo 120)</p>
+          <p class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label>Empresa ou instituição interessada <span class="req">*</span></label>
+          <p class="field-hint">Quem manifestou interesse em dar continuidade ao projeto e/ou mantém parceria em andamento. Sem essa manifestação o INPI não aceita o registro.</p>
+          <div class="row2">
+            <div class="field">
+              <label for="interessada_razao_social">Razão social <span class="req">*</span></label>
+              <input type="text" id="interessada_razao_social" autocomplete="off">
+              <p class="field-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="interessada_cnpj">CNPJ <span class="req">*</span></label>
+              <input type="text" id="interessada_cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off">
+              <p class="field-error" hidden></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_carta_interesse" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_carta_interesse">Declaro que a carta de manifestação de interesse da empresa ou instituição acima será anexada ao processo no SIPAC.</label>
             <p class="field-error" hidden></p>
           </div>
         </div>
@@ -128,6 +178,17 @@
           Dados completos de cada autor, inclusive os sensíveis (CPF, endereço) — nada disso é enviado a lugar
           nenhum, fica só no seu navegador. Pelo menos um autor é obrigatório — o primeiro é o autor correspondente.
         </p>
+
+        <div class="info-box">
+          <span class="info-box-icon" aria-hidden="true">!</span>
+          <div class="info-box-body">
+            <strong class="info-box-title">O autor correspondente (o primeiro da lista) precisa ter vínculo com o CEFET-MG.</strong>
+            Não pode ser instituição parceira nem inventor independente. E se houver algum <strong>servidor</strong> entre
+            os autores, é ele quem precisa ser o correspondente — é quem responde institucionalmente pelo processo junto
+            ao SIPAC e ao INPI, então tem que ser alguém com vínculo permanente com a instituição, não um estudante ou
+            um vínculo temporário que pode não estar mais aqui quando o registro for concluído.
+          </div>
+        </div>
 
         <div class="info-box">
           <span class="info-box-icon" aria-hidden="true">i</span>
@@ -165,13 +226,14 @@
         </div>
 
         <div class="field">
-          <label>Área de aplicação <span class="tag-count">— <a href="#" id="link-tabela-area" class="source-citation-link" target="_blank" rel="noopener noreferrer">consultar tabela</a></span></label>
-          <p class="field-hint">Pesquise e selecione quantas classificações forem necessárias para identificar o campo de aplicação do programa.</p>
+          <label>Área de aplicação <span class="req">*</span> <span class="tag-count">— <a href="#" id="link-tabela-area" class="source-citation-link" target="_blank" rel="noopener noreferrer">consultar tabela</a></span></label>
+          <p class="field-hint">Pesquise e selecione quantas classificações forem necessárias para identificar o campo de aplicação do programa. Escolha pelo menos uma.</p>
           <div class="combo-box">
             <input type="text" id="area-search" placeholder="Digite para buscar, ex.: automação, saúde, educação…" autocomplete="off">
             <div class="combo-listbox" id="area-listbox" hidden></div>
           </div>
           <div class="tag-list" id="area-tags"></div>
+          <p class="field-error" hidden></p>
         </div>
 
         <div class="field">
@@ -186,12 +248,14 @@
         </div>
 
         <div class="field">
-          <label for="palavras-custom">Palavras-chave</label>
+          <label for="palavras-custom">Palavras-chave <span class="req">*</span></label>
+          <p class="field-hint">Entre 2 e 5 palavras-chave que ajudem a identificar o software.</p>
           <div class="tag-add">
             <input type="text" id="palavras-custom" placeholder="Digite e adicione">
             <button type="button" class="btn" data-add-tag="palavras_chave">Adicionar</button>
           </div>
           <div class="tag-list" id="palavras-tags"></div>
+          <p class="field-error" hidden></p>
         </div>
       </fieldset>
     </section>
@@ -199,7 +263,7 @@
     <section class="wizard-step" data-step="parceria">
       <fieldset>
         <legend>Parceria</legend>
-        <p class="section-hint">Em caso de mais de uma instituição participante do processo de invenção, indique objetivamente a participação de cada pesquisador/instituição, de maneira que justifique o compartilhamento de titularidade.</p>
+        <p class="section-hint">Para cada instituição parceira, informe o percentual de cotitularidade e descreva, em um parágrafo, a contribuição dela para o software — é essa contribuição que justifica o percentual.</p>
 
         <div class="field">
           <label>Percentuais de cotitularidade <span class="req">*</span></label>
@@ -216,10 +280,9 @@
         </div>
 
         <div class="field">
-          <label for="resumo_fases">Justificativa de titularidade <span class="req">*</span></label>
-          <p class="field-hint">Faça um resumo das fases de pesquisa realizadas, apontando a participação de cada um dos pesquisadores/instituições envolvidos de maneira que justifique o compartilhamento de titularidade.</p>
-          <textarea id="resumo_fases" class="textarea-longa" minlength="120"></textarea>
-          <p class="field-error" hidden></p>
+          <label>Contribuição de cada instituição parceira <span class="req">*</span></label>
+          <p class="field-hint">Um parágrafo (mínimo 120 caracteres) por instituição: o que ela fez, entregou ou financiou, em que fase do desenvolvimento, e por que isso justifica o percentual informado acima.</p>
+          <div id="cotitularidade-justificativas-list"></div>
         </div>
       </fieldset>
     </section>
@@ -227,7 +290,7 @@
     <section class="wizard-step" data-step="artefato">
       <fieldset>
         <legend>Programa a Proteger <span class="req">*</span></legend>
-        <p class="section-hint">Identifique o repositório, a release e o hash SHA-256 do código submetido a registro.</p>
+        <p class="section-hint">Identifique o repositório, a release e o hash SHA-512 do código submetido a registro.</p>
 
         <div class="row2">
           <div class="field">
@@ -247,21 +310,18 @@
 
         <div class="field hash-field">
           <div class="field-label-row">
-            <label for="release-sha256">SHA-256 <span class="req">*</span></label>
+            <label for="release-sha512">SHA-512 <span class="req">*</span></label>
             <button type="button" class="info-btn" data-info-toggle="info-hash" aria-label="Por que esse hash e de quem é a responsabilidade por ele?">?</button>
           </div>
           <div class="info-popover-wrap">
             <div class="info-popover" id="info-hash" hidden>
-              Este SHA-256 é o hash do release do GitHub — garante que o código deste repositório não mudou desde
-              a submissão, e é o que a extensão do NIT confere. <strong>Não é</strong> o mesmo resumo hash que o
-              formulário eletrônico e-RPC do INPI pede no depósito — lá o manual do INPI recomenda especificamente o
-              SHA-512, calculado à parte pelo autor correspondente. A guarda do arquivo compactado que gerou aquele
-              hash é responsabilidade exclusiva do autor correspondente, pelo prazo de vigência da proteção legal
-              (50 anos, art. 2º, §2º da Lei nº 9.609/98) — guarde-o de forma segura e separada, com o registro de
-              como o hash foi calculado, para fins de reprodutibilidade.
+              Este SHA-512 é o hash do release do GitHub — é o resumo digital informado ao INPI. Ele garante que o código 
+              deste repositório não mudou desde
+              a submissão. A guarda do arquivo compactado que gerou o
+              hash é responsabilidade dos autores. 
             </div>
           </div>
-          <input type="text" id="release-sha256" placeholder="Cole aqui o SHA-256 gerado no repositório e apresentado no README">
+          <input type="text" id="release-sha512" placeholder="Cole aqui o SHA-512 gerado no repositório e apresentado no README">
           <p class="field-hint">Copie do checklist publicado no README do repositório.</p>
           <p class="field-error" hidden></p>
         </div>
@@ -279,7 +339,7 @@
           </div>
           <div class="info-popover-wrap">
             <div class="info-popover" id="info-derivacao" hidden>
-              A Derivação Autorizada deve ser informada caso o Pedido de Registro de Programa de Computador seja derivado de outro, nos termos do Art. 5º da Lei nº 9.609/1998. Deverão ser fornecidas informações do programa original — título, linguagem e número do registro (caso esteja depositado no INPI). A guarda da autorização é de responsabilidade do titular dos direitos patrimoniais derivados.
+              A Derivação Autorizada deve ser informada caso o Pedido de Registro de Programa de Computador seja derivado de outro, nos termos do Art. 5º da Lei nº 9.609/1998. Deverão ser fornecidas informações do programa original — título, linguagem e número do registro (caso esteja depositado no INPI). A guarda da autorização é de responsabilidade dos autores do software.
             </div>
           </div>
           <div class="radio-row">
@@ -301,6 +361,15 @@
             <div class="field">
               <label for="derivacao_numero_registro">Nº de registro no INPI (se houver)</label>
               <input type="text" id="derivacao_numero_registro">
+            </div>
+          </div>
+
+          <div class="decl-card" data-decl-card>
+            <input type="checkbox" id="decl_guarda_derivacao" class="decl-native">
+            <span class="decl-check" aria-hidden="true">✓</span>
+            <div class="decl-body">
+              <label for="decl_guarda_derivacao">Declaro que os autores do software são responsáveis pela guarda do documento que autoriza esta derivação.</label>
+              <p class="field-error" hidden></p>
             </div>
           </div>
         </div>
@@ -339,6 +408,24 @@
           <span class="decl-check" aria-hidden="true">✓</span>
           <div class="decl-body">
             <label for="decl_custos_inpi">Declaro ciência dos custos de abertura do processo junto ao INPI e de cada ato do processo do pedido de programa de computador.</label>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_guarda_hash" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_guarda_hash">Declaro que guardarei, de forma segura e separada, o arquivo compactado usado para gerar o hash do código-fonte, pelo prazo de vigência da proteção legal (50 anos, art. 2º, §2º da Lei nº 9.609/98).</label>
+            <p class="field-error" hidden></p>
+          </div>
+        </div>
+
+        <div class="decl-card" data-decl-card>
+          <input type="checkbox" id="decl_guarda_copia" class="decl-native">
+          <span class="decl-check" aria-hidden="true">✓</span>
+          <div class="decl-body">
+            <label for="decl_guarda_copia">Declaro que cada autor manterá a guarda de uma cópia do software a ser protegido, pelo prazo de vigência da proteção legal (50 anos, art. 2º, §2º da Lei nº 9.609/98), para eventual necessidade de comprovação ou modificação futura.</label>
             <p class="field-error" hidden></p>
           </div>
         </div>
@@ -430,7 +517,7 @@
         <p class="field-error" hidden></p>
       </div>
       <div class="field">
-        <label>Nacionalidade</label>
+        <label>Nacionalidade <span class="req">*</span></label>
         <input type="text" data-campo="nacionalidade" autocomplete="off">
         <p class="field-error" hidden></p>
       </div>
@@ -500,6 +587,7 @@
       <div class="field">
         <label>E-mail <span class="req">*</span></label>
         <input type="text" data-campo="email" autocomplete="off">
+        <p class="field-hint email-dominio-hint" hidden>Servidor e vínculo temporário precisam usar aqui o e-mail institucional.</p>
         <p class="field-error" hidden></p>
       </div>
     </div>
@@ -513,7 +601,7 @@
 
     <div class="row2">
       <div class="field combo-box">
-        <label>Qualificação profissional</label>
+        <label>Qualificação profissional <span class="req">*</span></label>
         <input type="text" data-campo="qualificacao_profissional" autocomplete="off" placeholder="Digite para buscar…">
         <div class="combo-listbox qualificacao-listbox" hidden></div>
         <p class="field-error" hidden></p>

@@ -4,7 +4,28 @@
 // Prefixo fixo da organização no GitHub. Único lugar a mudar se o org mudar.
 var GITHUB_ORG = "cie-cefet-mg";
 
-var LINGUAGENS_COMUNS = ["Python","JavaScript","TypeScript","Java","C","C++","C#","PHP","Go","R","SQL","HTML/CSS","Shell/Bash","Kotlin"];
+// Domínio do e-mail institucional. Único lugar a mudar se o domínio mudar
+// (ex.: por causa da transformação em UFCI — ver CLAUDE.md na raiz do pacote).
+var EMAIL_DOMINIO_CEFETMG = "cefetmg.br";
+
+// TRL a partir do qual o registro exige justificativa com comprovantes e
+// manifestação de interesse de empresa/instituição (INPI).
+var TRL_MINIMO_MATURIDADE = 6;
+
+// Mínimo de caracteres dos campos de parágrafo (justificativa do TRL,
+// contribuição de cada instituição parceira).
+var MIN_CARACTERES_PARAGRAFO = 250;
+
+// Quantidade de palavras-chave aceitas na etapa Classificação.
+var MIN_PALAVRAS_CHAVE = 2;
+var MAX_PALAVRAS_CHAVE = 5;
+
+// Máximo de sugestões exibidas por lista de autocomplete.
+var MAX_RESULTS = 40;
+
+var LINGUAGENS_COMUNS = ["Python","JavaScript","TypeScript",
+                      "Java","C","C++","C#","PHP","Go","R",
+                      "SQL","HTML/CSS","Shell/Bash","Kotlin"];
 
 // Campi do CEFET-MG usados no seletor de Campus (autor com Instituição = CEFET-MG).
 var CAMPUS_CEFETMG = [
