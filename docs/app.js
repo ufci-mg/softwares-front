@@ -94,7 +94,7 @@
   var QUALIFICACAO_ITEMS = flattenFlatPairs(QUALIFICACAO_GRUPOS_RAW);
 
   function rotuloVinculo(v){
-    return { servidor: "Servidor", estudante: "Estudante", temporario: "Vínculo temporário" }[v] || "—";
+    return { servidor: "Servidor", estudante: "Estudante", temporario: "Vínculo temporário", parceiro: "Parceiro" }[v] || "—";
   }
 
   // ================= tags genéricas =================
@@ -352,6 +352,15 @@
   }
 
   function atualizarVisibilidadeAutor(card, autor){
+    // Vínculo é único por autor: para instituição parceira é sempre "parceiro"
+    // (não é uma escolha — é decorrência de a instituição não ser o CEFET-MG/UFCI),
+    // e para inventor independente não existe vínculo institucional. Só quando a
+    // instituição é o CEFET-MG/UFCI o vínculo é uma escolha real, feita no combo.
+    if(autor.instituicao_tipo === "parceira"){
+      autor.tipo_vinculo = "parceiro";
+    } else if(autor.instituicao_tipo === "independente"){
+      autor.tipo_vinculo = "";
+    }
     card.querySelector(".bloco-cefetmg").hidden = autor.instituicao_tipo !== "cefetmg";
     card.querySelector(".bloco-parceira").hidden = autor.instituicao_tipo !== "parceira";
     card.querySelector(".bloco-independente").hidden = autor.instituicao_tipo !== "independente";
@@ -862,7 +871,9 @@
         instituicao_tipo: a.instituicao_tipo || "",
         instituicao_nome: instNome,
         campus: a.instituicao_tipo === "cefetmg" ? (a.campus || "") : "",
-        tipo_vinculo: a.instituicao_tipo === "cefetmg" ? (a.tipo_vinculo || "") : "",
+        // "parceiro" já vem forçado em state por atualizarVisibilidadeAutor
+        // quando instituicao_tipo é "parceira" — não é uma escolha do docente.
+        tipo_vinculo: (a.instituicao_tipo === "cefetmg" || a.instituicao_tipo === "parceira") ? (a.tipo_vinculo || "") : "",
         endereco: endereco,
         telefone: (a.telefone || "").trim(),
         email: (a.email || "").trim(),
@@ -1366,6 +1377,8 @@
           linhaCampo("Instituição", autor.instituicao_nome, { indent: 10 });
           if(autor.instituicao_tipo === "cefetmg"){
             linhaCampo("Campus", autor.campus, { indent: 10 });
+          }
+          if(autor.tipo_vinculo){
             linhaCampo("Tipo de vínculo", rotuloVinculo(autor.tipo_vinculo), { indent: 10 });
           }
           if(autor.endereco){
