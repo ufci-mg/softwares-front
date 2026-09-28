@@ -94,7 +94,7 @@
   var QUALIFICACAO_ITEMS = flattenFlatPairs(QUALIFICACAO_GRUPOS_RAW);
 
   function rotuloVinculo(v){
-    return { servidor: "Servidor", estudante: "Estudante", temporario: "Vínculo temporário", parceiro: "Parceiro" }[v] || "—";
+    return { servidor: "Servidor", estudante: "Estudante", temporario: "Vínculo temporário", terceirizado: "Terceirizado", parceiro: "Parceiro" }[v] || "—";
   }
 
   // ================= tags genéricas =================
