@@ -1,4 +1,4 @@
-# Garante que docs/index.html (+ docs/dados.js, docs/app.js, docs/estilos.css)
+# Garante que index.html (+ dados.js, app.js, estilos.css)
 # continua 100% offline — não é conveniência, é a fronteira de privacidade:
 # este formulário digita CPF/endereço de autores, então "roda só no
 # navegador" precisa ser verificável, não só prometido no texto da página.
@@ -31,13 +31,13 @@ jobs:
       - name: Sem referência de rede fora do bloco vendorizado
         run: |
           set -euo pipefail
-          sed '/BEGIN VENDOR/,/END VENDOR/d' docs/index.html > /tmp/sem-vendor.html
+          sed '/BEGIN VENDOR/,/END VENDOR/d' index.html > /tmp/sem-vendor.html
           # ALLOW-REDE-LINK-CITACAO: as duas únicas linhas de dados.js com uma
           # URL de citação estática (o professor clica, nada é carregado pela
-          # página) — ver o comentário ao lado delas em docs/dados.js.
-          grep -v 'ALLOW-REDE-LINK-CITACAO' docs/dados.js > /tmp/dados-sem-links-citacao.js
+          # página) — ver o comentário ao lado delas em dados.js.
+          grep -v 'ALLOW-REDE-LINK-CITACAO' dados.js > /tmp/dados-sem-links-citacao.js
           if grep -EnI 'https?://|fetch\(|XMLHttpRequest|import\(|sendBeacon|new Worker|WebSocket|EventSource' \
-              /tmp/sem-vendor.html /tmp/dados-sem-links-citacao.js docs/app.js docs/estilos.css; then
+              /tmp/sem-vendor.html /tmp/dados-sem-links-citacao.js app.js estilos.css; then
             echo "" >&2
             echo "Referência de rede encontrada fora do bloco vendorizado — estes arquivos precisam continuar 100% offline." >&2
             exit 1
@@ -47,7 +47,7 @@ jobs:
       - name: Hash do bloco vendorizado confere
         run: |
           set -euo pipefail
-          sed -n '/BEGIN VENDOR/,/END VENDOR/p' docs/index.html \
+          sed -n '/BEGIN VENDOR/,/END VENDOR/p' index.html \
             | sha256sum | awk '{print $1"  index.html.vendor-block"}' > /tmp/hash-atual.sha256
           if ! diff -u .github/vendor-pdf-lib.sha256 /tmp/hash-atual.sha256; then
             echo "" >&2
